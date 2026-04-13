@@ -1,0 +1,65 @@
+# Dashboard TV — Barbearia VIP Franqueadora
+# Template do server block Nginx
+#
+# INSTRUÇÕES DE USO:
+# 1. Copiar para /etc/nginx/sites-available/dashtv.conf
+# 2. Substituir TOKEN_PLACEHOLDER pelo token real (openssl rand -hex 16)
+# 3. Substituir /var/www/dashtv pelo caminho absoluto do projeto no servidor
+# 4. Executar: certbot --nginx -d dashboard.franquiabv.xyz
+# 5. Executar: ln -s /etc/nginx/sites-available/dashtv.conf /etc/nginx/sites-enabled/
+# 6. Executar: nginx -s reload
+#
+# NUNCA commitar /etc/nginx/sites-available/dashtv.conf pois contém o token real.
+# Este template (TOKEN_PLACEHOLDER) é seguro para o repositório.
+
+# Mapa: token correto → $auth_ok = 1, qualquer outro valor (ou ausente) → 0
+map $arg_token $auth_ok {
+    default              0;
+    "TOKEN_PLACEHOLDER"  1;
+}
+
+# Redirect HTTP → HTTPS (Certbot preenche este bloco)
+server {
+    listen 80;
+    server_name dashboard.franquiabv.xyz;
+    # Certbot adicionará redirect para HTTPS aqui
+}
+
+# Bloco principal HTTPS
+server {
+    listen 443 ssl;
+    server_name dashboard.franquiabv.xyz;
+
+    # Certificados SSL — preenchido automaticamente pelo Certbot
+    # ssl_certificate     /etc/letsencrypt/live/dashboard.franquiabv.xyz/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/dashboard.franquiabv.xyz/privkey.pem;
+    # include             /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Log dedicado: registra IP, timestamp, status HTTP e user-agent de todos os acessos
+    access_log /var/log/nginx/dashtv-access.log combined;
+    error_log  /var/log/nginx/dashtv-error.log warn;
+
+    location / {
+        # Bloquear imediatamente se token inválido ou ausente
+        if ($auth_ok = 0) {
+            return 403 "Acesso negado";
+        }
+
+        # Proxy reverso para Next.js em localhost
+        # O token NÃO é repassado ao Next.js — fica apenas no Nginx
+        proxy_pass http://127.0.0.1:3031;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        # Timeouts — queries SQL do dashboard podem levar alguns segundos
+        proxy_read_timeout 30s;
+        proxy_connect_timeout 10s;
+    }
+}
