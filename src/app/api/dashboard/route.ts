@@ -3,7 +3,6 @@ import {
   getFaturamentoHoje,
   getAgendamentosDia,
   getSlotsBarbeiros,
-  getSlotsOcupados,
   getEmAtendimento,
   getServicosRealizados,
   getFaturamentoPendente,
@@ -24,7 +23,6 @@ export async function GET() {
       faturamentoHoje,
       agendamentosDia,
       barbers,
-      slotsOcupados,
       emAtendimento,
       servicosRealizados,
       faturamentoPendente,
@@ -34,13 +32,14 @@ export async function GET() {
       getFaturamentoHoje(),
       getAgendamentosDia(),
       getSlotsBarbeiros(),
-      getSlotsOcupados(),
       getEmAtendimento(),
       getServicosRealizados(),
       getFaturamentoPendente(),
       getMedia3Meses(),
       getRankingUnidades(),
     ])
+
+    const slotsOcupados = agendamentosDia
 
     const slotsLivres = calcularSlotsLivres(barbers, slotsOcupados)
     const faturamentoProjetado = faturamentoHoje + faturamentoPendente

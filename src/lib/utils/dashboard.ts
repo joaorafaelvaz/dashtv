@@ -3,6 +3,9 @@ import type { BarberSchedule } from '@/lib/types/dashboard'
 /**
  * Mapeia um Date para o nome da coluna correspondente em dashboard_movimentos.
  * getDay(): 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb
+ *
+ * Nota: a query getMedia3Meses usa CASE DAYOFWEEK(CURDATE()) diretamente no SQL.
+ * Esta função está disponível para lógica de análise em JS se necessário no futuro.
  */
 export function getDayColumn(date: Date): string {
   if (isNaN(date.getTime())) throw new Error(`getDayColumn: invalid Date`)
