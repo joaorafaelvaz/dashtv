@@ -32,6 +32,10 @@ describe('getDayColumn', () => {
       expect(getDayColumn(d)).toBe(`faturamento_${dia}`)
     })
   })
+
+  it('lança erro para Date inválido', () => {
+    expect(() => getDayColumn(new Date('invalid'))).toThrow('getDayColumn: invalid Date')
+  })
 })
 
 describe('calcularVariacaoPct', () => {
@@ -64,6 +68,10 @@ describe('timeToMinutes', () => {
   it('converte 00:00:00 em 0', () => {
     expect(timeToMinutes('00:00:00')).toBe(0)
   })
+
+  it('converte 09:00:30 em 541 minutos (30s arredondado)', () => {
+    expect(timeToMinutes('09:00:30')).toBe(541)
+  })
 })
 
 describe('calcularSlotsLivres', () => {
@@ -94,8 +102,17 @@ describe('calcularSlotsLivres', () => {
     expect(calcularSlotsLivres([comAlmoco], 0)).toBe(16)
   })
 
-  it('soma slots de múltiplos barbeiros', () => {
-    expect(calcularSlotsLivres([barbeiro, barbeiro], 0)).toBe(36)
+  it('soma slots de múltiplos barbeiros com horários distintos', () => {
+    const barbeiro2: BarberSchedule = {
+      id: 2,
+      tempo_atendimento: 60,
+      abertura: '08:00:00',   // 480 min
+      fechamento: '16:00:00', // 960 min → 480 min → 8 slots
+      almoco_inicio: null,
+      almoco_fim: null,
+    }
+    // barbeiro: 18 slots (30min, 9h), barbeiro2: 8 slots (60min, 8h)
+    expect(calcularSlotsLivres([barbeiro, barbeiro2], 0)).toBe(26)
   })
 
   it('nunca retorna valor negativo', () => {

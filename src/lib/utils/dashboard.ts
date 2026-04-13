@@ -5,6 +5,7 @@ import type { BarberSchedule } from '@/lib/types/dashboard'
  * getDay(): 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb
  */
 export function getDayColumn(date: Date): string {
+  if (isNaN(date.getTime())) throw new Error(`getDayColumn: invalid Date`)
   const columns = [
     'domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado',
   ]
@@ -24,8 +25,8 @@ export function calcularVariacaoPct(atual: number, referencia: number): number {
  * Converte string "HH:MM:SS" em total de minutos desde meia-noite.
  */
 export function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number)
-  return h * 60 + m
+  const [h, m, s = 0] = time.split(':').map(Number)
+  return h * 60 + m + Math.round(s / 60)
 }
 
 /**
