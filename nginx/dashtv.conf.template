@@ -4,10 +4,11 @@
 # INSTRUÇÕES DE USO:
 # 1. Copiar para /etc/nginx/sites-available/dashtv.conf
 # 2. Substituir TOKEN_PLACEHOLDER pelo token real (openssl rand -hex 16)
-# 3. Substituir /var/www/dashtv pelo caminho absoluto do projeto no servidor
-# 4. Executar: certbot --nginx -d dashboard.franquiabv.xyz
-# 5. Executar: ln -s /etc/nginx/sites-available/dashtv.conf /etc/nginx/sites-enabled/
-# 6. Executar: nginx -s reload
+# 3. Criar symlink: ln -s /etc/nginx/sites-available/dashtv.conf /etc/nginx/sites-enabled/
+# 4. Validar e ativar: nginx -t && nginx -s reload
+# 5. Emitir certificado: certbot --nginx -d dashboard.franquiabv.xyz
+#    (o site precisa estar ativo para o ACME challenge HTTP funcionar)
+# 6. Confirmar reload final: nginx -s reload
 #
 # NUNCA commitar /etc/nginx/sites-available/dashtv.conf pois contém o token real.
 # Este template (TOKEN_PLACEHOLDER) é seguro para o repositório.
@@ -42,8 +43,9 @@ server {
 
     location / {
         # Bloquear imediatamente se token inválido ou ausente
+        # Retorno silencioso (sem body) — não revela a existência de autenticação por token
         if ($auth_ok = 0) {
-            return 403 "Acesso negado";
+            return 403;
         }
 
         # Proxy reverso para Next.js em localhost
