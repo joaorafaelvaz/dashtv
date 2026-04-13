@@ -1,14 +1,17 @@
 import pool from './mysql'
+import type { RowDataPacket } from 'mysql2'
 import type { BarberSchedule, RankingUnidade } from '@/lib/types/dashboard'
+
+interface TotalRow extends RowDataPacket { total: number }
+interface MediaRow extends RowDataPacket { media: number }
 
 // ⚠️ Confirmar estes valores contra produção antes de fazer deploy
 const VENDAS_STATUS_VALIDA = 1
 const AGENDAS_STATUS_CANCELADO = [3, 4]
-const canceladosPlaceholder = AGENDAS_STATUS_CANCELADO.join(',')
 
 /** Faturamento total de vendas finalizadas hoje (todas as unidades) */
 export async function getFaturamentoHoje(): Promise<number> {
-  const [rows] = await pool.execute<any[]>(
+  const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COALESCE(SUM(v.valor_total), 0) AS total
      FROM vendas v
      INNER JOIN usuarios u ON v.usuario = u.id
@@ -19,21 +22,23 @@ export async function getFaturamentoHoje(): Promise<number> {
        AND un.status = 1`,
     [VENDAS_STATUS_VALIDA],
   )
-  return Number((rows as any[])[0]?.total ?? 0)
+  return Number(rows[0]?.total ?? 0)
 }
 
 /** Total de agendamentos marcados para hoje (excluindo cancelados e unidades inativas) */
 export async function getAgendamentosDia(): Promise<number> {
-  const [rows] = await pool.execute<any[]>(
+  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
+  const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COUNT(*) AS total
      FROM agendas a
      INNER JOIN usuarios u ON a.colaborador = u.id
      INNER JOIN unidades un ON u.unidade = un.id
      WHERE DATE(a.data) = CURDATE()
-       AND a.status NOT IN (${canceladosPlaceholder})
+       AND a.status NOT IN (${placeholders})
        AND un.status = 1`,
+    AGENDAS_STATUS_CANCELADO,
   )
-  return Number((rows as any[])[0]?.total ?? 0)
+  return Number(rows[0]?.total ?? 0)
 }
 
 /**
@@ -41,7 +46,7 @@ export async function getAgendamentosDia(): Promise<number> {
  * Usa CASE DAYOFWEEK para selecionar dinamicamente a coluna do dia.
  */
 export async function getSlotsBarbeiros(): Promise<BarberSchedule[]> {
-  const [rows] = await pool.execute<any[]>(
+  const [rows] = await pool.execute<BarberSchedule[]>(
     `SELECT
        u.id,
        u.tempo_atendimento,
@@ -88,35 +93,39 @@ export async function getSlotsBarbeiros(): Promise<BarberSchedule[]> {
        AND u.tempo_atendimento IS NOT NULL
        AND u.tempo_atendimento > 0`,
   )
-  return rows as BarberSchedule[]
+  return rows
 }
 
-/** Total de agendamentos ocupados hoje (mesmo filtro dos agendamentos do dia) */
+/**
+ * Slots ocupados hoje. Alias direto de getAgendamentosDia().
+ * Válido enquanto cada agendamento não-cancelado ocupa exatamente um slot.
+ * Se a lógica de slots mudar (ex: múltiplos serviços por slot), implementar query própria aqui.
+ */
 export async function getSlotsOcupados(): Promise<number> {
   return getAgendamentosDia()
 }
 
 /** Clientes com check-in aberto e sem checkout (em atendimento agora) */
 export async function getEmAtendimento(): Promise<number> {
-  const [rows] = await pool.execute<any[]>(
+  const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COUNT(*) AS total
      FROM agendas a
      WHERE DATE(a.data) = CURDATE()
        AND a.checkin = 1
        AND a.checkout = 0`,
   )
-  return Number((rows as any[])[0]?.total ?? 0)
+  return Number(rows[0]?.total ?? 0)
 }
 
 /** Total de atendimentos concluídos hoje (checkout realizado) */
 export async function getServicosRealizados(): Promise<number> {
-  const [rows] = await pool.execute<any[]>(
+  const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COUNT(*) AS total
      FROM agendas a
      WHERE DATE(a.data) = CURDATE()
        AND a.checkout = 1`,
   )
-  return Number((rows as any[])[0]?.total ?? 0)
+  return Number(rows[0]?.total ?? 0)
 }
 
 /**
@@ -125,7 +134,8 @@ export async function getServicosRealizados(): Promise<number> {
  * Filtra unidades inativas para consistência com os demais indicadores.
  */
 export async function getFaturamentoPendente(): Promise<number> {
-  const [rows] = await pool.execute<any[]>(
+  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
+  const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COALESCE(SUM(p.valor_venda), 0) AS total
      FROM agendas a
      INNER JOIN usuarios u ON a.colaborador = u.id
@@ -135,19 +145,21 @@ export async function getFaturamentoPendente(): Promise<number> {
        AND a.checkout = 0
        AND a.checkin = 0
        AND a.produto IS NOT NULL
-       AND a.status NOT IN (${canceladosPlaceholder})
+       AND a.status NOT IN (${placeholders})
        AND un.status = 1`,
+    AGENDAS_STATUS_CANCELADO,
   )
-  return Number((rows as any[])[0]?.total ?? 0)
+  return Number(rows[0]?.total ?? 0)
 }
 
 /**
  * Média do faturamento consolidado (todas as unidades) para o mesmo dia
  * da semana, calculada sobre os últimos 3 meses completos.
  * Usa a tabela dashboard_movimentos que já agrega faturamento semanal por unidade.
+ * No primeiro dia de cada mês a janela se desloca e a média recalcula. Comportamento esperado.
  */
 export async function getMedia3Meses(): Promise<number> {
-  const [rows] = await pool.execute<any[]>(
+  const [rows] = await pool.execute<MediaRow[]>(
     `SELECT COALESCE(AVG(monthly_total), 0) AS media
      FROM (
        SELECT SUM(
@@ -170,7 +182,7 @@ export async function getMedia3Meses(): Promise<number> {
        GROUP BY dm.ano, dm.mes
      ) AS monthly_sums`,
   )
-  return Number((rows as any[])[0]?.media ?? 0)
+  return Number(rows[0]?.media ?? 0)
 }
 
 /**
@@ -178,7 +190,7 @@ export async function getMedia3Meses(): Promise<number> {
  * Retorna ordenado DESC — use slice(0,5) para top5 e slice(-5) para bottom5.
  */
 export async function getRankingUnidades(): Promise<RankingUnidade[]> {
-  const [rows] = await pool.execute<any[]>(
+  const [rows] = await pool.execute<RankingUnidade[]>(
     `SELECT
        un.id,
        un.nome,
@@ -198,5 +210,5 @@ export async function getRankingUnidades(): Promise<RankingUnidade[]> {
      ORDER BY faturamento_dia DESC`,
     [VENDAS_STATUS_VALIDA],
   )
-  return rows as RankingUnidade[]
+  return rows
 }

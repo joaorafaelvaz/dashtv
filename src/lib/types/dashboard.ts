@@ -1,4 +1,6 @@
-export interface BarberSchedule {
+import type { RowDataPacket } from 'mysql2'
+
+export interface BarberSchedule extends RowDataPacket {
   id: number
   tempo_atendimento: number // minutos por atendimento
   abertura: string | null   // ex: "09:00:00"
@@ -7,9 +9,9 @@ export interface BarberSchedule {
   almoco_fim: string | null
 }
 
-export interface RankingUnidade {
+export interface RankingUnidade extends RowDataPacket {
   id: number
-  nome: string | null
+  nome: string | null  // NULL permitido no schema — tratar no componente de renderização
   cidade: string
   bairro: string
   faturamento_dia: number

@@ -75,14 +75,14 @@ describe('timeToMinutes', () => {
 })
 
 describe('calcularSlotsLivres', () => {
-  const barbeiro: BarberSchedule = {
+  const barbeiro = {
     id: 1,
     tempo_atendimento: 30,
     abertura: '09:00:00',    // 540 min
     fechamento: '18:00:00',  // 1080 min → 540 min disponíveis → 18 slots
     almoco_inicio: null,
     almoco_fim: null,
-  }
+  } as BarberSchedule
 
   it('calcula 18 slots para 9h de trabalho com atendimento de 30min', () => {
     expect(calcularSlotsLivres([barbeiro], 0)).toBe(18)
@@ -103,14 +103,14 @@ describe('calcularSlotsLivres', () => {
   })
 
   it('soma slots de múltiplos barbeiros com horários distintos', () => {
-    const barbeiro2: BarberSchedule = {
+    const barbeiro2 = {
       id: 2,
       tempo_atendimento: 60,
       abertura: '08:00:00',   // 480 min
       fechamento: '16:00:00', // 960 min → 480 min → 8 slots
       almoco_inicio: null,
       almoco_fim: null,
-    }
+    } as BarberSchedule
     // barbeiro: 18 slots (30min, 9h), barbeiro2: 8 slots (60min, 8h)
     expect(calcularSlotsLivres([barbeiro, barbeiro2], 0)).toBe(26)
   })
