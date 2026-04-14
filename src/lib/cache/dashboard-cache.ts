@@ -114,7 +114,11 @@ export async function getCachedDashboard(): Promise<CacheEntry> {
     await refresh()
   }
 
+  if (!memoryCache) {
+    throw new Error('Cache indisponível — falha na query inicial. Verifique os logs do PM2.')
+  }
+
   startBackgroundRefresh()
 
-  return memoryCache!
+  return memoryCache
 }
