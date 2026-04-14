@@ -17,6 +17,12 @@ export interface RankingUnidade extends RowDataPacket {
   faturamento_dia: number
 }
 
+export interface TopBarbeiro extends RowDataPacket {
+  nome: string
+  servicos: number
+  faturamento: number
+}
+
 export interface DashboardData {
   faturamento_hoje: number
   agendamentos_dia: number
@@ -25,7 +31,12 @@ export interface DashboardData {
   servicos_realizados: number
   faturamento_projetado: number
   media_3meses: number
-  variacao_media_pct: number   // % de variação vs média 3 meses
-  ranking: RankingUnidade[]    // todas as unidades, ordem DESC por faturamento_dia
-  ultima_atualizacao: string   // ISO timestamp
+  variacao_media_pct: number     // % de variação vs média 3 meses
+  taxa_ocupacao: number          // % de slots ocupados vs total
+  taxa_no_show: number           // % de agendamentos passados sem check-in
+  tempo_medio_atendimento: number // minutos médios por atendimento concluído
+  produtos_vendidos: number      // total de vendas finalizadas hoje
+  top_barbeiros: TopBarbeiro[]   // top 3 por serviços realizados
+  ranking: RankingUnidade[]      // todas as unidades, ordem DESC por faturamento_dia
+  ultima_atualizacao: string     // ISO timestamp
 }

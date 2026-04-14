@@ -9,6 +9,10 @@ import {
   getFaturamentoPendente,
   getMedia3Meses,
   getRankingUnidades,
+  getTaxaNoShow,
+  getTempoMedioAtendimento,
+  getTopBarbeiros,
+  getProdutosVendidos,
 } from '@/lib/db/queries'
 import { calcularSlotsLivres, calcularVariacaoPct } from '@/lib/utils/dashboard'
 import type { DashboardData } from '@/lib/types/dashboard'
@@ -35,6 +39,10 @@ async function fetchDashboardData(): Promise<DashboardData> {
     faturamentoPendente,
     media3Meses,
     ranking,
+    taxaNoShow,
+    tempoMedioAtendimento,
+    topBarbeiros,
+    produtosVendidos,
   ] = await Promise.all([
     getFaturamentoHoje(),
     getAgendamentosDia(),
@@ -44,17 +52,32 @@ async function fetchDashboardData(): Promise<DashboardData> {
     getFaturamentoPendente(),
     getMedia3Meses(),
     getRankingUnidades(),
+    getTaxaNoShow(),
+    getTempoMedioAtendimento(),
+    getTopBarbeiros(),
+    getProdutosVendidos(),
   ])
+
+  const slotsLivres = calcularSlotsLivres(barbers, agendamentosDia)
+  const totalSlots = agendamentosDia + slotsLivres
+  const taxaOcupacao = totalSlots > 0
+    ? Math.round((agendamentosDia / totalSlots) * 100)
+    : 0
 
   return {
     faturamento_hoje: faturamentoHoje,
     agendamentos_dia: agendamentosDia,
-    slots_livres: calcularSlotsLivres(barbers, agendamentosDia),
+    slots_livres: slotsLivres,
     em_atendimento: emAtendimento,
     servicos_realizados: servicosRealizados,
     faturamento_projetado: faturamentoHoje + faturamentoPendente,
     media_3meses: media3Meses,
     variacao_media_pct: calcularVariacaoPct(faturamentoHoje, media3Meses),
+    taxa_ocupacao: taxaOcupacao,
+    taxa_no_show: taxaNoShow,
+    tempo_medio_atendimento: tempoMedioAtendimento,
+    produtos_vendidos: produtosVendidos,
+    top_barbeiros: topBarbeiros,
     ranking,
     ultima_atualizacao: new Date().toISOString(),
   }

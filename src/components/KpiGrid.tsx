@@ -1,11 +1,23 @@
 import KpiCard from './KpiCard'
 import { formatNumber } from '@/lib/utils/format'
 
+function formatPercent(v: number): string {
+  return `${v.toFixed(1)}%`
+}
+
+function formatMinutes(v: number): string {
+  return `${v}min`
+}
+
 interface Props {
   agendamentos: number
   slotsLivres: number
   emAtendimento: number
   servicosRealizados: number
+  taxaOcupacao: number
+  taxaNoShow: number
+  tempoMedioAtendimento: number
+  produtosVendidos: number
 }
 
 export default function KpiGrid({
@@ -13,33 +25,23 @@ export default function KpiGrid({
   slotsLivres,
   emAtendimento,
   servicosRealizados,
+  taxaOcupacao,
+  taxaNoShow,
+  tempoMedioAtendimento,
+  produtosVendidos,
 }: Props) {
   return (
-    <section className="grid grid-cols-2 gap-4 px-5 py-4 shrink-0">
-      <KpiCard
-        icon="📅"
-        label="Agendamentos"
-        value={agendamentos}
-        formatFn={formatNumber}
-      />
-      <KpiCard
-        icon="🔓"
-        label="Slots Livres"
-        value={slotsLivres}
-        formatFn={formatNumber}
-      />
-      <KpiCard
-        icon="✂️"
-        label="Em Atendimento"
-        value={emAtendimento}
-        formatFn={formatNumber}
-      />
-      <KpiCard
-        icon="✅"
-        label="Serviços Realizados"
-        value={servicosRealizados}
-        formatFn={formatNumber}
-      />
+    <section className="grid grid-cols-3 gap-3 px-5 py-3 shrink-0">
+      <KpiCard compact icon="📅" label="Agendamentos"      value={agendamentos}           formatFn={formatNumber} />
+      <KpiCard compact icon="🔓" label="Slots Livres"      value={slotsLivres}            formatFn={formatNumber} />
+      <KpiCard compact icon="📊" label="Tx. Ocupação"      value={taxaOcupacao}           formatFn={formatPercent} />
+
+      <KpiCard compact icon="✂️" label="Em Atendimento"   value={emAtendimento}          formatFn={formatNumber} />
+      <KpiCard compact icon="✅" label="Serv. Realizados"  value={servicosRealizados}     formatFn={formatNumber} />
+      <KpiCard compact icon="🛍️" label="Produtos Vendidos" value={produtosVendidos}       formatFn={formatNumber} />
+
+      <KpiCard compact icon="👻" label="No-Show"           value={taxaNoShow}             formatFn={formatPercent} />
+      <KpiCard compact icon="⏱️" label="Tempo Médio"       value={tempoMedioAtendimento}  formatFn={formatMinutes} />
     </section>
   )
 }

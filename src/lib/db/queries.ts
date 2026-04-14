@@ -1,6 +1,6 @@
 import pool from './mysql'
 import type { RowDataPacket } from 'mysql2'
-import type { BarberSchedule, RankingUnidade } from '@/lib/types/dashboard'
+import type { BarberSchedule, RankingUnidade, TopBarbeiro } from '@/lib/types/dashboard'
 
 interface TotalRow extends RowDataPacket { total: number }
 interface MediaRow extends RowDataPacket { media: number }
@@ -184,6 +184,90 @@ export async function getMedia3Meses(): Promise<number> {
      ) AS monthly_sums`,
   )
   return Number(rows[0]?.media ?? 0)
+}
+
+/**
+ * Taxa de no-show: % de agendamentos cujo horário já passou,
+ * mas o cliente não fez check-in (excluindo cancelados e já fechados).
+ */
+export async function getTaxaNoShow(): Promise<number> {
+  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
+  const [rows] = await pool.execute<(RowDataPacket & { taxa: number })[]>(
+    `SELECT ROUND(
+       COUNT(CASE WHEN a.checkin = 0 AND a.hora < TIME_FORMAT(NOW(), '%H:%i') THEN 1 END)
+       * 100.0 / NULLIF(COUNT(*), 0),
+     1) AS taxa
+     FROM agendas a
+     INNER JOIN usuarios u ON a.colaborador = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
+     WHERE DATE(a.data) = CURDATE()
+       AND a.status NOT IN (${placeholders})
+       AND a.fechamento IS NULL
+       AND un.status = 1`,
+    AGENDAS_STATUS_CANCELADO,
+  )
+  return Number(rows[0]?.taxa ?? 0)
+}
+
+/**
+ * Tempo médio de atendimento em minutos, baseado nos agendamentos
+ * já concluídos hoje (checkout = 1) e no tempo_atendimento configurado por barbeiro.
+ */
+export async function getTempoMedioAtendimento(): Promise<number> {
+  const [rows] = await pool.execute<(RowDataPacket & { media_minutos: number })[]>(
+    `SELECT COALESCE(ROUND(AVG(u.tempo_atendimento)), 0) AS media_minutos
+     FROM agendas a
+     INNER JOIN usuarios u ON a.colaborador = u.id
+     WHERE DATE(a.data) = CURDATE()
+       AND a.checkout = 1`,
+  )
+  return Number(rows[0]?.media_minutos ?? 0)
+}
+
+/**
+ * Top 3 barbeiros mais produtivos hoje, ordenados por serviços concluídos.
+ */
+export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
+  const [rows] = await pool.execute<TopBarbeiro[]>(
+    `SELECT
+       u.nome,
+       COUNT(a.id)                              AS servicos,
+       COALESCE(SUM(v.valor_total), 0)          AS faturamento
+     FROM agendas a
+     INNER JOIN usuarios u  ON a.colaborador = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
+     LEFT JOIN vendas v
+       ON v.usuario = u.id
+       AND DATE(v.data_criacao) = CURDATE()
+       AND v.comanda_temp = 0
+       AND v.status = ?
+     WHERE DATE(a.data) = CURDATE()
+       AND a.checkout = 1
+       AND un.status = 1
+     GROUP BY u.id, u.nome
+     ORDER BY servicos DESC, faturamento DESC
+     LIMIT 3`,
+    [VENDAS_STATUS_VALIDA],
+  )
+  return rows
+}
+
+/**
+ * Total de vendas (produtos/serviços) finalizadas hoje em todas as unidades ativas.
+ */
+export async function getProdutosVendidos(): Promise<number> {
+  const [rows] = await pool.execute<TotalRow[]>(
+    `SELECT COUNT(*) AS total
+     FROM vendas v
+     INNER JOIN usuarios u  ON v.usuario = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
+     WHERE DATE(v.data_criacao) = CURDATE()
+       AND v.comanda_temp = 0
+       AND v.status = ?
+       AND un.status = 1`,
+    [VENDAS_STATUS_VALIDA],
+  )
+  return Number(rows[0]?.total ?? 0)
 }
 
 /**

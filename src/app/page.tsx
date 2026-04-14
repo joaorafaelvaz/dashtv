@@ -8,6 +8,7 @@ import KpiGrid from '@/components/KpiGrid'
 import ProjecaoGrid from '@/components/ProjecaoGrid'
 import RankingSection from '@/components/RankingSection'
 import StatusBar from '@/components/StatusBar'
+import TopBarbeiros from '@/components/TopBarbeiros'
 
 /** Intervalo de atualização em milissegundos (5 minutos) */
 const REFRESH_MS = 5 * 60 * 1000
@@ -104,7 +105,13 @@ export default function DashboardTV() {
           slotsLivres={data.slots_livres}
           emAtendimento={data.em_atendimento}
           servicosRealizados={data.servicos_realizados}
+          taxaOcupacao={data.taxa_ocupacao}
+          taxaNoShow={data.taxa_no_show}
+          tempoMedioAtendimento={data.tempo_medio_atendimento}
+          produtosVendidos={data.produtos_vendidos}
         />
+
+        <TopBarbeiros barbeiros={data.top_barbeiros} />
 
         <ProjecaoGrid
           faturamentoProjetado={data.faturamento_projetado}
