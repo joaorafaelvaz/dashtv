@@ -32,7 +32,8 @@ cd "$APP_DIR"
 git pull origin master
 
 echo "==> [2/5] Installing dependencies..."
-npm ci --omit=dev
+# devDependencies são necessárias no build (tailwindcss, typescript, postcss)
+npm ci
 
 echo "==> [3/5] Building Next.js..."
 npm run build
