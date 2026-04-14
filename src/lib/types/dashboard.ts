@@ -21,6 +21,9 @@ export interface TopBarbeiro extends RowDataPacket {
   nome: string
   servicos: number
   faturamento: number
+  unidade_estado: string | null
+  unidade_cidade: string | null
+  unidade_bairro: string | null
 }
 
 export interface DashboardData {

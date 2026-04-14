@@ -255,6 +255,9 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
   const [rows] = await pool.execute<TopBarbeiro[]>(
     `SELECT
        u.nome,
+       un.estado AS unidade_estado,
+       un.cidade AS unidade_cidade,
+       un.bairro AS unidade_bairro,
        COUNT(a.id) AS servicos,
        COALESCE((
          SELECT SUM(vp.valor_total)
@@ -271,7 +274,7 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
      WHERE DATE(a.data) = CURDATE()
        AND a.checkout = 1
        AND un.status = 1
-     GROUP BY u.id, u.nome
+     GROUP BY u.id, u.nome, un.estado, un.cidade, un.bairro
      ORDER BY servicos DESC, faturamento DESC
      LIMIT 3`,
     [VENDAS_STATUS_VALIDA],

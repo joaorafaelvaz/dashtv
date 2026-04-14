@@ -28,24 +28,31 @@ export default function TopBarbeiros({ barbeiros }: Props) {
           ✂️ Top Barbeiros do Dia
         </p>
         <div className="space-y-2">
-          {barbeiros.map((b, i) => (
-            <div key={b.nome} className="flex items-center gap-3">
-              <span className="text-2xl w-8 shrink-0">{MEDALS[i]}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-white font-semibold text-base truncate max-w-[220px]">
-                    {b.nome}
-                  </span>
-                  <span className="text-[#D4AF37] font-bold text-base shrink-0 ml-2">
-                    {formatCurrency(b.faturamento)}
-                  </span>
+          {barbeiros.map((b, i) => {
+            const partes = [b.unidade_estado, b.unidade_cidade, b.unidade_bairro].filter(Boolean)
+            const unidade = partes.join(' - ')
+            return (
+              <div key={b.nome} className="flex items-center gap-3">
+                <span className="text-2xl w-8 shrink-0">{MEDALS[i]}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-white font-semibold text-base truncate max-w-[420px]">
+                      {b.nome}
+                      {unidade && (
+                        <span className="text-gray-500 font-normal"> — {unidade}</span>
+                      )}
+                    </span>
+                    <span className="text-[#D4AF37] font-bold text-base shrink-0 ml-2">
+                      {formatCurrency(b.faturamento)}
+                    </span>
+                  </div>
+                  <p className="text-gray-500 text-xs">
+                    {b.servicos} {b.servicos === 1 ? 'serviço' : 'serviços'} realizados
+                  </p>
                 </div>
-                <p className="text-gray-500 text-xs">
-                  {b.servicos} {b.servicos === 1 ? 'serviço' : 'serviços'} realizados
-                </p>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>
