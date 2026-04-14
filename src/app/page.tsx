@@ -106,6 +106,7 @@ export default function DashboardTV() {
           emAtendimento={data.em_atendimento}
           servicosRealizados={data.servicos_realizados}
           taxaOcupacao={data.taxa_ocupacao}
+          taxaCancelamento={data.taxa_cancelamento}
           taxaNoShow={data.taxa_no_show}
           tempoMedioAtendimento={data.tempo_medio_atendimento}
           produtosVendidos={data.produtos_vendidos}

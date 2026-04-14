@@ -15,6 +15,7 @@ interface Props {
   emAtendimento: number
   servicosRealizados: number
   taxaOcupacao: number
+  taxaCancelamento: number
   taxaNoShow: number
   tempoMedioAtendimento: number
   produtosVendidos: number
@@ -26,6 +27,7 @@ export default function KpiGrid({
   emAtendimento,
   servicosRealizados,
   taxaOcupacao,
+  taxaCancelamento,
   taxaNoShow,
   tempoMedioAtendimento,
   produtosVendidos,
@@ -42,6 +44,7 @@ export default function KpiGrid({
 
       <KpiCard compact icon="👻" label="No-Show"           value={taxaNoShow}             formatFn={formatPercent} />
       <KpiCard compact icon="⏱️" label="Tempo Médio"       value={tempoMedioAtendimento}  formatFn={formatMinutes} />
+      <KpiCard compact icon="❌" label="Cancelamentos"     value={taxaCancelamento}       formatFn={formatPercent} />
     </section>
   )
 }

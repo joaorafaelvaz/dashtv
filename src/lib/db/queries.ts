@@ -187,6 +187,26 @@ export async function getMedia3Meses(): Promise<number> {
 }
 
 /**
+ * Taxa de cancelamento: % de agendamentos cancelados sobre o total agendado hoje.
+ */
+export async function getTaxaCancelamento(): Promise<number> {
+  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
+  const [rows] = await pool.execute<(RowDataPacket & { taxa: number })[]>(
+    `SELECT ROUND(
+       COUNT(CASE WHEN a.status IN (${placeholders}) THEN 1 END)
+       * 100.0 / NULLIF(COUNT(*), 0),
+     1) AS taxa
+     FROM agendas a
+     INNER JOIN usuarios u ON a.colaborador = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
+     WHERE DATE(a.data) = CURDATE()
+       AND un.status = 1`,
+    [...AGENDAS_STATUS_CANCELADO],
+  )
+  return Number(rows[0]?.taxa ?? 0)
+}
+
+/**
  * Taxa de no-show: % de agendamentos cujo horário já passou,
  * mas o cliente não fez check-in (excluindo cancelados e já fechados).
  */

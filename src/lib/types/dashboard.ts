@@ -33,6 +33,7 @@ export interface DashboardData {
   media_3meses: number
   variacao_media_pct: number     // % de variação vs média 3 meses
   taxa_ocupacao: number          // % de slots ocupados vs total
+  taxa_cancelamento: number      // % de agendamentos cancelados sobre o total
   taxa_no_show: number           // % de agendamentos passados sem check-in
   tempo_medio_atendimento: number // minutos médios por atendimento concluído
   produtos_vendidos: number      // total de vendas finalizadas hoje
