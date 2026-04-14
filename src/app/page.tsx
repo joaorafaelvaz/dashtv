@@ -40,7 +40,12 @@ export default function DashboardTV() {
   // ---------- Busca de dados ----------
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/dashboard', { cache: 'no-store' })
+      // Repassa o token da URL para a API — Nginx exige em todas as rotas de /
+      const token = new URLSearchParams(window.location.search).get('token')
+      const apiUrl = token
+        ? `/api/dashboard?token=${encodeURIComponent(token)}`
+        : '/api/dashboard'
+      const res = await fetch(apiUrl, { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json: DashboardData = await res.json()
       setData(json)
