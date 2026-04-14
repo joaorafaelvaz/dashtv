@@ -49,8 +49,8 @@ function RankingRow({ pos, unidade, maxFaturamento, variant }: RowProps) {
 export default function RankingSection({ ranking }: Props) {
   // Top 5: maiores faturamentos (início do array já ordenado DESC)
   const top5 = ranking.slice(0, 5)
-  // Bottom 5: menores faturamentos (fim do array), do pior para o menos pior
-  const bottom5 = ranking.slice(-5).reverse()
+  // Bottom 5: menores faturamentos com faturamento > 0 (exclui unidades fechadas no dia)
+  const bottom5 = ranking.filter((u) => u.faturamento_dia > 0).slice(-5).reverse()
 
   // Cada grupo tem seu próprio máximo para escalar barras de forma legível.
   // Usar o máximo global tornaria as barras do Bottom 5 quase invisíveis.

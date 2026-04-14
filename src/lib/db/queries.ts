@@ -25,7 +25,7 @@ export async function getFaturamentoHoje(): Promise<number> {
   return Number(rows[0]?.total ?? 0)
 }
 
-/** Total de agendamentos marcados para hoje (excluindo cancelados e unidades inativas) */
+/** Total de agendamentos marcados para hoje (excluindo cancelados, fechados e unidades inativas) */
 export async function getAgendamentosDia(): Promise<number> {
   const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
   const [rows] = await pool.execute<TotalRow[]>(
@@ -35,6 +35,7 @@ export async function getAgendamentosDia(): Promise<number> {
      INNER JOIN unidades un ON u.unidade = un.id
      WHERE DATE(a.data) = CURDATE()
        AND a.status NOT IN (${placeholders})
+       AND a.fechamento IS NULL
        AND un.status = 1`,
     AGENDAS_STATUS_CANCELADO,
   )

@@ -27,10 +27,13 @@ export default function DashboardHeader() {
 
   return (
     <header className="flex flex-col items-center py-6 border-b border-[#D4AF37]/40 shrink-0">
-      <h1 className="text-5xl font-bold tracking-widest uppercase text-[#FFD700]">
-        Barbearia VIP
-      </h1>
-      <p className="text-gray-400 text-xl mt-1 tracking-wider">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo-barbearia-vip.png"
+        alt="Barbearia VIP"
+        className="h-20 object-contain"
+      />
+      <p className="text-gray-400 text-xl mt-2 tracking-wider">
         Dashboard Franqueadora
       </p>
       <div className="flex items-center gap-3 mt-3 text-gray-300">
