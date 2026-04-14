@@ -83,11 +83,29 @@ async function fetchDashboardData(): Promise<DashboardData> {
   }
 }
 
+/** Campos obrigatórios adicionados em versões recentes — cache sem eles é descartado */
+const REQUIRED_FIELDS: (keyof DashboardData)[] = [
+  'taxa_ocupacao',
+  'taxa_no_show',
+  'tempo_medio_atendimento',
+  'produtos_vendidos',
+  'top_barbeiros',
+]
+
+function isValidCache(entry: CacheEntry): boolean {
+  return REQUIRED_FIELDS.every((f) => entry.data[f] !== undefined)
+}
+
 function loadFromDisk(): CacheEntry | null {
   try {
     if (!fs.existsSync(CACHE_FILE)) return null
     const raw = fs.readFileSync(CACHE_FILE, 'utf-8')
-    return JSON.parse(raw) as CacheEntry
+    const entry = JSON.parse(raw) as CacheEntry
+    if (!isValidCache(entry)) {
+      console.log('[cache] Cache do disco desatualizado (campos ausentes) — descartando')
+      return null
+    }
+    return entry
   } catch {
     return null
   }

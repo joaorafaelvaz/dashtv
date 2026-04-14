@@ -2,11 +2,11 @@ import KpiCard from './KpiCard'
 import { formatNumber } from '@/lib/utils/format'
 
 function formatPercent(v: number): string {
-  return `${v.toFixed(1)}%`
+  return `${(v ?? 0).toFixed(1)}%`
 }
 
 function formatMinutes(v: number): string {
-  return `${v}min`
+  return `${v ?? 0}min`
 }
 
 interface Props {
