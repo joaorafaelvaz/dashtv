@@ -9,22 +9,24 @@
 #
 # Saída: exibe o JSON resumido com os dados carregados e o timestamp.
 
-set -euo pipefail
-
 NEXT_PORT=3031
 API_URL="http://127.0.0.1:${NEXT_PORT}/api/dashboard"
 
 echo "==> Aquecendo cache em ${API_URL}..."
 
-RESPONSE=$(curl -sf --max-time 30 "$API_URL")
+HTTP_CODE=$(curl -s -o /tmp/warm-cache-response.json -w "%{http_code}" --max-time 30 "$API_URL" || true)
 
-if [ $? -ne 0 ]; then
-  echo "ERRO: Não foi possível conectar ao Next.js em $API_URL"
-  echo "Verifique se o PM2 está rodando: pm2 status"
+if [ "$HTTP_CODE" != "200" ]; then
+  echo "ERRO: API retornou HTTP ${HTTP_CODE}"
+  echo "--- Resposta ---"
+  cat /tmp/warm-cache-response.json 2>/dev/null || true
+  echo ""
+  echo "--- Últimos logs PM2 ---"
+  pm2 logs dashtv --lines 30 --nostream 2>/dev/null || true
   exit 1
 fi
 
-# Extrair campos principais para confirmação
+RESPONSE=$(cat /tmp/warm-cache-response.json)
 TIMESTAMP=$(echo "$RESPONSE" | grep -o '"ultima_atualizacao":"[^"]*"' | cut -d'"' -f4)
 FAT=$(echo "$RESPONSE" | grep -o '"faturamento_hoje":[0-9.]*' | cut -d':' -f2)
 
