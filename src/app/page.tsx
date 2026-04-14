@@ -96,6 +96,7 @@ export default function DashboardTV() {
           faturamento={data.faturamento_hoje}
           variacaoPct={data.variacao_media_pct}
           media3meses={data.media_3meses}
+          servicosRealizados={data.servicos_realizados}
         />
 
         <KpiGrid
