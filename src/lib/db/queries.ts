@@ -264,7 +264,8 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
            INNER JOIN vendas v2 ON v2.id = a2.fechamento
            WHERE a2.colaborador = u.id
              AND DATE(a2.data) = CURDATE()
-             AND a2.checkout = 1
+             AND v2.comanda_temp = 0
+             AND v2.status = ?
          ) sv
        ), 0) AS faturamento
      FROM agendas a
@@ -276,7 +277,7 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
      GROUP BY u.id, u.nome
      ORDER BY servicos DESC, faturamento DESC
      LIMIT 3`,
-    [],
+    [VENDAS_STATUS_VALIDA],
   )
   return rows
 }
