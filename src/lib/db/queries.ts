@@ -246,7 +246,10 @@ export async function getTempoMedioAtendimento(): Promise<number> {
 
 /**
  * Top 3 barbeiros mais produtivos hoje, ordenados por serviços concluídos.
- * Faturamento calculado via subquery para evitar produto cartesiano com agendas.
+ *
+ * Faturamento via agendas.fechamento → vendas.id (vendas.usuario é o caixa, não o barbeiro).
+ * Subquery com DISTINCT venda evita inflar valor quando múltiplas agendas
+ * compartilham o mesmo fechamento (ex: 5 serviços numa só venda de R$68).
  */
 export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
   const [rows] = await pool.execute<TopBarbeiro[]>(
@@ -254,12 +257,15 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
        u.nome,
        COUNT(a.id) AS servicos,
        COALESCE((
-         SELECT SUM(v.valor_total)
-         FROM vendas v
-         WHERE v.usuario = u.id
-           AND DATE(v.data_criacao) = CURDATE()
-           AND v.comanda_temp = 0
-           AND v.status = ?
+         SELECT SUM(sv.valor_total)
+         FROM (
+           SELECT DISTINCT v2.id, v2.valor_total
+           FROM agendas a2
+           INNER JOIN vendas v2 ON v2.id = a2.fechamento
+           WHERE a2.colaborador = u.id
+             AND DATE(a2.data) = CURDATE()
+             AND a2.checkout = 1
+         ) sv
        ), 0) AS faturamento
      FROM agendas a
      INNER JOIN usuarios u  ON a.colaborador = u.id
@@ -270,7 +276,7 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
      GROUP BY u.id, u.nome
      ORDER BY servicos DESC, faturamento DESC
      LIMIT 3`,
-    [VENDAS_STATUS_VALIDA],
+    [],
   )
   return rows
 }
