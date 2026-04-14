@@ -247,9 +247,9 @@ export async function getTempoMedioAtendimento(): Promise<number> {
 /**
  * Top 3 barbeiros mais produtivos hoje, ordenados por serviços concluídos.
  *
- * Faturamento via agendas.fechamento → vendas.id (vendas.usuario é o caixa, não o barbeiro).
- * Subquery com DISTINCT venda evita inflar valor quando múltiplas agendas
- * compartilham o mesmo fechamento (ex: 5 serviços numa só venda de R$68).
+ * Serviços: agendas com checkout = 1.
+ * Faturamento: vendas_produtos.colaborador — cada item da venda registra
+ * o profissional que realizou, independente de quem fechou o caixa.
  */
 export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
   const [rows] = await pool.execute<TopBarbeiro[]>(
@@ -257,16 +257,13 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
        u.nome,
        COUNT(a.id) AS servicos,
        COALESCE((
-         SELECT SUM(sv.valor_total)
-         FROM (
-           SELECT DISTINCT v2.id, v2.valor_total
-           FROM agendas a2
-           INNER JOIN vendas v2 ON v2.id = a2.fechamento
-           WHERE a2.colaborador = u.id
-             AND DATE(a2.data) = CURDATE()
-             AND v2.comanda_temp = 0
-             AND v2.status = ?
-         ) sv
+         SELECT SUM(vp.valor_total)
+         FROM vendas_produtos vp
+         INNER JOIN vendas v ON v.id = vp.venda
+         WHERE vp.colaborador = u.id
+           AND DATE(v.data_criacao) = CURDATE()
+           AND v.comanda_temp = 0
+           AND v.status = ?
        ), 0) AS faturamento
      FROM agendas a
      INNER JOIN usuarios u  ON a.colaborador = u.id
