@@ -246,21 +246,24 @@ export async function getTempoMedioAtendimento(): Promise<number> {
 
 /**
  * Top 3 barbeiros mais produtivos hoje, ordenados por serviços concluídos.
+ * Faturamento calculado via subquery para evitar produto cartesiano com agendas.
  */
 export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
   const [rows] = await pool.execute<TopBarbeiro[]>(
     `SELECT
        u.nome,
-       COUNT(a.id)                              AS servicos,
-       COALESCE(SUM(v.valor_total), 0)          AS faturamento
+       COUNT(a.id) AS servicos,
+       COALESCE((
+         SELECT SUM(v.valor_total)
+         FROM vendas v
+         WHERE v.usuario = u.id
+           AND DATE(v.data_criacao) = CURDATE()
+           AND v.comanda_temp = 0
+           AND v.status = ?
+       ), 0) AS faturamento
      FROM agendas a
      INNER JOIN usuarios u  ON a.colaborador = u.id
      INNER JOIN unidades un ON u.unidade = un.id
-     LEFT JOIN vendas v
-       ON v.usuario = u.id
-       AND DATE(v.data_criacao) = CURDATE()
-       AND v.comanda_temp = 0
-       AND v.status = ?
      WHERE DATE(a.data) = CURDATE()
        AND a.checkout = 1
        AND un.status = 1

@@ -40,7 +40,7 @@ export default function KpiGrid({
 
       <KpiCard compact icon="✂️" label="Em Atendimento"   value={emAtendimento}          formatFn={formatNumber} />
       <KpiCard compact icon="✅" label="Serv. Realizados"  value={servicosRealizados}     formatFn={formatNumber} />
-      <KpiCard compact icon="🛍️" label="Produtos Vendidos" value={produtosVendidos}       formatFn={formatNumber} />
+      <KpiCard compact icon="💈" label="Atendimentos"      value={produtosVendidos}       formatFn={formatNumber} />
 
       <KpiCard compact icon="👻" label="No-Show"           value={taxaNoShow}             formatFn={formatPercent} />
       <KpiCard compact icon="⏱️" label="Tempo Médio"       value={tempoMedioAtendimento}  formatFn={formatMinutes} />
