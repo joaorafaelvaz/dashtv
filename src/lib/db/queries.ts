@@ -6,10 +6,14 @@ interface TotalRow extends RowDataPacket { total: number }
 interface MediaRow extends RowDataPacket { media: number }
 
 const VENDAS_STATUS_VALIDA = 1
+/** agendas.status = 1 = "Agendado" (cliente ainda não atendido). */
+const AGENDA_STATUS_AGENDADO = 1
 /**
- * status = 3 em `agendas` significa "No Show" (cliente não compareceu).
- * Cancelamento NÃO é um status: ao cancelar, a linha é movida (soft-delete)
- * para a tabela `agendas_exclusoes`. Ver getTaxaCancelamento.
+ * agendas.status = 3 = "No Show" no modelo do sistema, mas na prática não é
+ * populado de forma confiável durante o dia. Por isso o no-show é calculado
+ * por heurística em getTaxaNoShow. Esta constante é usada só para excluir
+ * esses registros de getAgendamentosDia/getFaturamentoPendente.
+ * Cancelamento não é status: vira linha em `agendas_exclusoes` (ver getTaxaCancelamento).
  */
 const AGENDAS_STATUS_NO_SHOW = 3
 
@@ -219,22 +223,40 @@ export async function getTaxaCancelamento(): Promise<number> {
 }
 
 /**
- * Taxa de no-show: % de agendamentos de hoje marcados como No Show (status = 3)
- * sobre o total de agendamentos de hoje que continuam em `agendas`.
- * Usa o flag oficial do sistema em vez de heurística de horário.
+ * Taxa de no-show (tempo real): % de agendamentos cujo horário já passou e o
+ * cliente não compareceu — ainda "agendado" (status = 1), sem check-in nem
+ * checkout, e sem nenhuma venda registrada para o cliente hoje (se vendeu, veio).
+ *
+ * Denominador: agendamentos de hoje cujo horário já passou (os que "deviam" ter
+ * acontecido) — assim a taxa é estável durante o dia, em vez de diluída por
+ * horários ainda futuros.
+ *
+ * Ex.: agendado 10h, corte. Às 11h ainda status=1, sem check-in/checkout e sem
+ * venda do cliente hoje → conta como no-show.
  */
 export async function getTaxaNoShow(): Promise<number> {
   const [rows] = await pool.execute<(RowDataPacket & { taxa: number })[]>(
     `SELECT ROUND(
-       COUNT(CASE WHEN a.status = ? THEN 1 END)
+       COUNT(CASE
+         WHEN a.status = ?
+          AND a.cliente IS NOT NULL
+          AND a.checkin = 0
+          AND a.checkout = 0
+          AND NOT EXISTS (
+            SELECT 1 FROM vendas vd
+            WHERE vd.cliente = a.cliente
+              AND DATE(vd.data_criacao) = CURDATE()
+          )
+         THEN 1 END)
        * 100.0 / NULLIF(COUNT(*), 0),
      1) AS taxa
      FROM agendas a
-     INNER JOIN usuarios u ON a.colaborador = u.id
+     INNER JOIN usuarios u  ON a.colaborador = u.id
      INNER JOIN unidades un ON u.unidade = un.id
      WHERE DATE(a.data) = CURDATE()
+       AND a.hora < TIME_FORMAT(NOW(), '%H:%i')
        AND un.status = 1`,
-    [AGENDAS_STATUS_NO_SHOW],
+    [AGENDA_STATUS_AGENDADO],
   )
   return Number(rows[0]?.taxa ?? 0)
 }
