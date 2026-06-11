@@ -233,6 +233,9 @@ export async function getTaxaCancelamento(): Promise<number> {
  *
  * Ex.: agendado 10h, corte. Às 11h ainda status=1, sem check-in/checkout e sem
  * venda do cliente hoje → conta como no-show.
+ *
+ * Regra extra: se `fechamento` não for NULL, o atendimento foi fechado
+ * (cliente atendido/pago) — nunca conta como no-show.
  */
 export async function getTaxaNoShow(): Promise<number> {
   const [rows] = await pool.execute<(RowDataPacket & { taxa: number })[]>(
@@ -242,6 +245,7 @@ export async function getTaxaNoShow(): Promise<number> {
           AND a.cliente IS NOT NULL
           AND a.checkin = 0
           AND a.checkout = 0
+          AND a.fechamento IS NULL
           AND NOT EXISTS (
             SELECT 1 FROM vendas vd
             WHERE vd.cliente = a.cliente
