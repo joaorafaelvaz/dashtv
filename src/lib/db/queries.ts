@@ -5,9 +5,13 @@ import type { BarberSchedule, RankingUnidade, TopBarbeiro } from '@/lib/types/da
 interface TotalRow extends RowDataPacket { total: number }
 interface MediaRow extends RowDataPacket { media: number }
 
-// ⚠️ Confirmar estes valores contra produção antes de fazer deploy
 const VENDAS_STATUS_VALIDA = 1
-const AGENDAS_STATUS_CANCELADO = [3, 4]
+/**
+ * status = 3 em `agendas` significa "No Show" (cliente não compareceu).
+ * Cancelamento NÃO é um status: ao cancelar, a linha é movida (soft-delete)
+ * para a tabela `agendas_exclusoes`. Ver getTaxaCancelamento.
+ */
+const AGENDAS_STATUS_NO_SHOW = 3
 
 /** Faturamento total de vendas finalizadas hoje (todas as unidades) */
 export async function getFaturamentoHoje(): Promise<number> {
@@ -25,19 +29,19 @@ export async function getFaturamentoHoje(): Promise<number> {
   return Number(rows[0]?.total ?? 0)
 }
 
-/** Total de agendamentos marcados para hoje (excluindo cancelados, fechados e unidades inativas) */
+/** Total de agendamentos marcados para hoje (excluindo no-shows, fechados e unidades inativas).
+ *  Cancelados já não estão em `agendas` (foram para `agendas_exclusoes`). */
 export async function getAgendamentosDia(): Promise<number> {
-  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
   const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COUNT(*) AS total
      FROM agendas a
      INNER JOIN usuarios u ON a.colaborador = u.id
      INNER JOIN unidades un ON u.unidade = un.id
      WHERE DATE(a.data) = CURDATE()
-       AND a.status NOT IN (${placeholders})
+       AND a.status <> ?
        AND a.fechamento IS NULL
        AND un.status = 1`,
-    AGENDAS_STATUS_CANCELADO,
+    [AGENDAS_STATUS_NO_SHOW],
   )
   return Number(rows[0]?.total ?? 0)
 }
@@ -133,9 +137,9 @@ export async function getServicosRealizados(): Promise<number> {
  * Valor projetado dos agendamentos ainda não realizados hoje.
  * Soma o valor_venda do serviço agendado para slots não iniciados.
  * Filtra unidades inativas para consistência com os demais indicadores.
+ * Exclui no-shows (status 3): não vão gerar receita.
  */
 export async function getFaturamentoPendente(): Promise<number> {
-  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
   const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COALESCE(SUM(p.valor_venda), 0) AS total
      FROM agendas a
@@ -146,85 +150,91 @@ export async function getFaturamentoPendente(): Promise<number> {
        AND a.checkout = 0
        AND a.checkin = 0
        AND a.produto IS NOT NULL
-       AND a.status NOT IN (${placeholders})
+       AND a.status <> ?
        AND un.status = 1`,
-    AGENDAS_STATUS_CANCELADO,
+    [AGENDAS_STATUS_NO_SHOW],
   )
   return Number(rows[0]?.total ?? 0)
 }
 
 /**
- * Média do faturamento consolidado (todas as unidades) para o mesmo dia
- * da semana, calculada sobre os últimos 3 meses completos.
- * Usa a tabela dashboard_movimentos que já agrega faturamento semanal por unidade.
- * No primeiro dia de cada mês a janela se desloca e a média recalcula. Comportamento esperado.
+ * Média do faturamento DIÁRIO para o mesmo dia da semana de hoje, nos últimos 3 meses.
+ *
+ * Para cada data que cai no mesmo dia da semana de hoje (excluindo hoje), soma as
+ * vendas válidas do dia — mesma definição de getFaturamentoHoje (comanda_temp = 0,
+ * status válido, unidade ativa) — e tira a média desses totais diários. Dias sem
+ * vendas não entram na média. O resultado é diretamente comparável a getFaturamentoHoje
+ * (um dia vs. a média de um dia equivalente), evitando o erro de magnitude anterior,
+ * que comparava 1 dia contra o total mensal daquele dia da semana (~4-5 dias).
  */
 export async function getMedia3Meses(): Promise<number> {
   const [rows] = await pool.execute<MediaRow[]>(
-    `SELECT COALESCE(AVG(monthly_total), 0) AS media
+    `SELECT COALESCE(AVG(daily.total), 0) AS media
      FROM (
-       SELECT SUM(
-         CASE DAYOFWEEK(CURDATE())
-           WHEN 1 THEN dm.faturamento_domingo
-           WHEN 2 THEN dm.faturamento_segunda
-           WHEN 3 THEN dm.faturamento_terca
-           WHEN 4 THEN dm.faturamento_quarta
-           WHEN 5 THEN dm.faturamento_quinta
-           WHEN 6 THEN dm.faturamento_sexta
-           WHEN 7 THEN dm.faturamento_sabado
-         END
-       ) AS monthly_total
-       FROM dashboard_movimentos dm
-       WHERE (dm.ano * 100 + dm.mes) >=
-               (YEAR(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) * 100
-                + MONTH(DATE_SUB(CURDATE(), INTERVAL 3 MONTH)))
-         AND (dm.ano * 100 + dm.mes) <
-               (YEAR(CURDATE()) * 100 + MONTH(CURDATE()))
-       GROUP BY dm.ano, dm.mes
-     ) AS monthly_sums`,
+       SELECT DATE(v.data_criacao) AS dia, SUM(v.valor_total) AS total
+       FROM vendas v
+       INNER JOIN usuarios u  ON v.usuario = u.id
+       INNER JOIN unidades un ON u.unidade = un.id
+       WHERE v.comanda_temp = 0
+         AND v.status = ?
+         AND un.status = 1
+         AND DAYOFWEEK(v.data_criacao) = DAYOFWEEK(CURDATE())
+         AND v.data_criacao >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+         AND v.data_criacao <  CURDATE()
+       GROUP BY DATE(v.data_criacao)
+     ) AS daily`,
+    [VENDAS_STATUS_VALIDA],
   )
   return Number(rows[0]?.media ?? 0)
 }
 
 /**
- * Taxa de cancelamento: % de agendamentos cancelados sobre o total agendado hoje.
+ * Taxa de cancelamento: % de agendamentos que eram para hoje e foram cancelados.
+ *
+ * Cancelados não ficam em `agendas` — a linha é movida para `agendas_exclusoes`
+ * (soft-delete) com `data` = data do agendamento. Por isso a taxa é:
+ *   cancelados_hoje / (ativos_hoje + cancelados_hoje)
+ * onde ativos_hoje = agendamentos de hoje que continuam em `agendas`.
  */
 export async function getTaxaCancelamento(): Promise<number> {
-  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
   const [rows] = await pool.execute<(RowDataPacket & { taxa: number })[]>(
     `SELECT ROUND(
-       COUNT(CASE WHEN a.status IN (${placeholders}) THEN 1 END)
-       * 100.0 / NULLIF(COUNT(*), 0),
+       canc.total * 100.0 / NULLIF(ativos.total + canc.total, 0),
      1) AS taxa
-     FROM agendas a
-     INNER JOIN usuarios u ON a.colaborador = u.id
-     INNER JOIN unidades un ON u.unidade = un.id
-     WHERE DATE(a.data) = CURDATE()
-       AND un.status = 1`,
-    [...AGENDAS_STATUS_CANCELADO],
+     FROM
+       (SELECT COUNT(*) AS total
+        FROM agendas a
+        INNER JOIN usuarios u  ON a.colaborador = u.id
+        INNER JOIN unidades un ON u.unidade = un.id
+        WHERE DATE(a.data) = CURDATE()
+          AND un.status = 1) AS ativos,
+       (SELECT COUNT(*) AS total
+        FROM agendas_exclusoes ae
+        INNER JOIN usuarios u  ON ae.colaborador = u.id
+        INNER JOIN unidades un ON u.unidade = un.id
+        WHERE DATE(ae.data) = CURDATE()
+          AND un.status = 1) AS canc`,
   )
   return Number(rows[0]?.taxa ?? 0)
 }
 
 /**
- * Taxa de no-show: % de agendamentos cujo horário já passou,
- * mas o cliente não fez check-in (excluindo cancelados e já fechados).
+ * Taxa de no-show: % de agendamentos de hoje marcados como No Show (status = 3)
+ * sobre o total de agendamentos de hoje que continuam em `agendas`.
+ * Usa o flag oficial do sistema em vez de heurística de horário.
  */
 export async function getTaxaNoShow(): Promise<number> {
-  const placeholders = AGENDAS_STATUS_CANCELADO.map(() => '?').join(',')
   const [rows] = await pool.execute<(RowDataPacket & { taxa: number })[]>(
     `SELECT ROUND(
-       COUNT(CASE WHEN a.checkin = 0 AND a.hora < TIME_FORMAT(NOW(), '%H:%i') THEN 1 END)
+       COUNT(CASE WHEN a.status = ? THEN 1 END)
        * 100.0 / NULLIF(COUNT(*), 0),
      1) AS taxa
      FROM agendas a
      INNER JOIN usuarios u ON a.colaborador = u.id
      INNER JOIN unidades un ON u.unidade = un.id
      WHERE DATE(a.data) = CURDATE()
-       AND a.status NOT IN (${placeholders})
-       AND a.fechamento IS NULL
        AND un.status = 1`,
-    AGENDAS_STATUS_CANCELADO,
+    [AGENDAS_STATUS_NO_SHOW],
   )
   return Number(rows[0]?.taxa ?? 0)
 }
@@ -301,7 +311,10 @@ export async function getProdutosVendidos(): Promise<number> {
 }
 
 /**
- * Ranking de todas as unidades ativas por faturamento hoje.
+ * Ranking de todas as unidades ativas por faturamento hoje, atribuído por EXECUTOR
+ * (vendas_produtos.colaborador) — mesma base do Top Barbeiros, de modo que o
+ * faturamento de cada profissional soma para a unidade onde ele está lotado.
+ * Itens de venda sem colaborador atribuído não entram no ranking da unidade.
  * Retorna ordenado DESC — use slice(0,5) para top5 e slice(-5) para bottom5.
  */
 export async function getRankingUnidades(): Promise<RankingUnidade[]> {
@@ -311,11 +324,12 @@ export async function getRankingUnidades(): Promise<RankingUnidade[]> {
        un.nome,
        un.cidade,
        un.bairro,
-       COALESCE(SUM(v.valor_total), 0) AS faturamento_dia
+       COALESCE(SUM(CASE WHEN v.id IS NOT NULL THEN vp.valor_total END), 0) AS faturamento_dia
      FROM unidades un
-     LEFT JOIN usuarios us ON us.unidade = un.id AND us.status = 1
+     LEFT JOIN usuarios us        ON us.unidade = un.id AND us.status = 1
+     LEFT JOIN vendas_produtos vp ON vp.colaborador = us.id
      LEFT JOIN vendas v
-       ON v.usuario = us.id
+       ON v.id = vp.venda
        AND DATE(v.data_criacao) = CURDATE()
        AND v.comanda_temp = 0
        AND v.status = ?
