@@ -1,5 +1,6 @@
 import KpiCard from './KpiCard'
 import { formatNumber } from '@/lib/utils/format'
+import { toneLowerIsBetter, toneHigherIsBetter } from '@/lib/utils/dashboard'
 
 function formatPercent(v: number): string {
   return `${(v ?? 0).toFixed(1)}%`
@@ -32,19 +33,24 @@ export default function KpiGrid({
   tempoMedioAtendimento,
   produtosVendidos,
 }: Props) {
+  // Só métricas com "bom/ruim" intrínseco recebem cor. Contagens ficam neutras.
+  const toneOcupacao = toneHigherIsBetter(taxaOcupacao, 50, 30)
+  const toneNoShow = toneLowerIsBetter(taxaNoShow, 5, 10)
+  const toneCancelamento = toneLowerIsBetter(taxaCancelamento, 5, 10)
+
   return (
     <section className="grid grid-cols-3 gap-3 px-5 py-3 shrink-0">
       <KpiCard compact icon="📅" label="Agendamentos"      value={agendamentos}           formatFn={formatNumber} />
       <KpiCard compact icon="🔓" label="Slots Livres"      value={slotsLivres}            formatFn={formatNumber} />
-      <KpiCard compact icon="📊" label="Tx. Ocupação"      value={taxaOcupacao}           formatFn={formatPercent} />
+      <KpiCard compact icon="📊" label="Tx. Ocupação"      value={taxaOcupacao}           formatFn={formatPercent} tone={toneOcupacao} />
 
       <KpiCard compact icon="✂️" label="Em Atendimento"   value={emAtendimento}          formatFn={formatNumber} />
       <KpiCard compact icon="✅" label="Serv. Realizados"  value={servicosRealizados}     formatFn={formatNumber} />
       <KpiCard compact icon="💈" label="Atendimentos"      value={produtosVendidos}       formatFn={formatNumber} />
 
-      <KpiCard compact icon="👻" label="No-Show"           value={taxaNoShow}             formatFn={formatPercent} />
+      <KpiCard compact icon="👻" label="No-Show"           value={taxaNoShow}             formatFn={formatPercent} tone={toneNoShow} />
       <KpiCard compact icon="⏱️" label="Tempo Médio"       value={tempoMedioAtendimento}  formatFn={formatMinutes} />
-      <KpiCard compact icon="❌" label="Cancelamentos"     value={taxaCancelamento}       formatFn={formatPercent} />
+      <KpiCard compact icon="❌" label="Cancelamentos"     value={taxaCancelamento}       formatFn={formatPercent} tone={toneCancelamento} />
     </section>
   )
 }

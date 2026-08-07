@@ -54,8 +54,12 @@ export default function RankingSection({ ranking }: Props) {
 
   // Cada grupo tem seu próprio máximo para escalar barras de forma legível.
   // Usar o máximo global tornaria as barras do Bottom 5 quase invisíveis.
+  // Atenção: bottom5 está em ordem crescente (menor primeiro), então o máximo
+  // é o ÚLTIMO item — usar o primeiro faz todas as barras estourarem 100%.
   const maxTop = top5[0]?.faturamento_dia ?? 1
-  const maxBottom = bottom5[0]?.faturamento_dia ?? 1
+  const maxBottom = bottom5.length > 0
+    ? Math.max(...bottom5.map((u) => u.faturamento_dia))
+    : 1
 
   return (
     <section className="flex-1 px-5 py-3 min-h-0 overflow-hidden">

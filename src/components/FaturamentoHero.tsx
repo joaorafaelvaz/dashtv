@@ -23,9 +23,9 @@ export default function FaturamentoHero({ faturamento, variacaoPct, media3meses,
         {formatCurrency(faturamento)}
       </p>
       <p className={`text-2xl mt-4 font-semibold ${variacaoColor}`}>
-        {arrow} {variacaoFormatada} vs média 3 meses
+        {arrow} {variacaoFormatada} projetado vs média 3 meses
       </p>
-      <p className="text-gray-500 text-base mt-2">
+      <p className="text-gray-400 text-lg mt-2">
         Ticket médio: {formatCurrency(ticketMedio)}
       </p>
     </section>
