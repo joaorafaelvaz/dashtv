@@ -3,6 +3,8 @@ import {
   calcularVariacaoPct,
   timeToMinutes,
   calcularSlotsLivres,
+  toneLowerIsBetter,
+  toneHigherIsBetter,
 } from '../dashboard'
 import type { BarberSchedule } from '@/lib/types/dashboard'
 
@@ -53,6 +55,44 @@ describe('calcularVariacaoPct', () => {
 
   it('retorna 0 quando atual === referência', () => {
     expect(calcularVariacaoPct(100, 100)).toBe(0)
+  })
+})
+
+describe('toneLowerIsBetter', () => {
+  // Faixas usadas no painel para no-show e cancelamento: warn >= 5, bad >= 10
+  it('retorna good abaixo do limite de atenção', () => {
+    expect(toneLowerIsBetter(4.9, 5, 10)).toBe('good')
+  })
+
+  it('retorna warn no limite de atenção (inclusive)', () => {
+    expect(toneLowerIsBetter(5, 5, 10)).toBe('warn')
+  })
+
+  it('retorna bad no limite crítico (inclusive)', () => {
+    expect(toneLowerIsBetter(10, 5, 10)).toBe('bad')
+  })
+
+  it('retorna good para zero', () => {
+    expect(toneLowerIsBetter(0, 5, 10)).toBe('good')
+  })
+})
+
+describe('toneHigherIsBetter', () => {
+  // Faixa usada para taxa de ocupação: warn <= 50, bad <= 30
+  it('retorna good acima do limite de atenção', () => {
+    expect(toneHigherIsBetter(51, 50, 30)).toBe('good')
+  })
+
+  it('retorna warn no limite de atenção (inclusive)', () => {
+    expect(toneHigherIsBetter(50, 50, 30)).toBe('warn')
+  })
+
+  it('retorna bad no limite crítico (inclusive)', () => {
+    expect(toneHigherIsBetter(30, 50, 30)).toBe('bad')
+  })
+
+  it('retorna bad para zero', () => {
+    expect(toneHigherIsBetter(0, 50, 30)).toBe('bad')
   })
 })
 

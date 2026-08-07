@@ -24,6 +24,31 @@ export function calcularVariacaoPct(atual: number, referencia: number): number {
   return ((atual - referencia) / referencia) * 100
 }
 
+/** Faixa de avaliação de um KPI, usada para colorir o valor no painel. */
+export type KpiTone = 'neutral' | 'good' | 'warn' | 'bad'
+
+/**
+ * Avalia métrica em que MENOR é melhor (no-show, cancelamento).
+ * @param warnAt - a partir deste valor (inclusive) vira atenção
+ * @param badAt  - a partir deste valor (inclusive) vira crítico
+ */
+export function toneLowerIsBetter(value: number, warnAt: number, badAt: number): KpiTone {
+  if (value >= badAt) return 'bad'
+  if (value >= warnAt) return 'warn'
+  return 'good'
+}
+
+/**
+ * Avalia métrica em que MAIOR é melhor (taxa de ocupação).
+ * @param warnBelow - até este valor (inclusive) vira atenção
+ * @param badBelow  - até este valor (inclusive) vira crítico
+ */
+export function toneHigherIsBetter(value: number, warnBelow: number, badBelow: number): KpiTone {
+  if (value <= badBelow) return 'bad'
+  if (value <= warnBelow) return 'warn'
+  return 'good'
+}
+
 /**
  * Converte string "HH:MM:SS" em total de minutos desde meia-noite.
  */

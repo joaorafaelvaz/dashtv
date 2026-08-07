@@ -67,15 +67,20 @@ async function fetchDashboardData(): Promise<DashboardData> {
     ? Math.round((agendamentosDia / totalSlots) * 100)
     : 0
 
+  const faturamentoProjetado = faturamentoHoje + faturamentoPendente
+
   return {
     faturamento_hoje: faturamentoHoje,
     agendamentos_dia: agendamentosDia,
     slots_livres: slotsLivres,
     em_atendimento: emAtendimento,
     servicos_realizados: servicosRealizados,
-    faturamento_projetado: faturamentoHoje + faturamentoPendente,
+    faturamento_projetado: faturamentoProjetado,
     media_3meses: media3Meses,
-    variacao_media_pct: calcularVariacaoPct(faturamentoHoje, media3Meses),
+    // Compara o PROJETADO do dia (não o parcial) contra a média de um dia
+    // equivalente. Comparar o realizado às 11h com a média de um dia cheio
+    // deixava o indicador permanentemente vermelho.
+    variacao_media_pct: calcularVariacaoPct(faturamentoProjetado, media3Meses),
     taxa_ocupacao: taxaOcupacao,
     taxa_cancelamento: taxaCancelamento,
     taxa_no_show: taxaNoShow,
