@@ -5,6 +5,7 @@ import {
   calcularSlotsLivres,
   toneLowerIsBetter,
   toneHigherIsBetter,
+  calcularRitmo,
 } from '../dashboard'
 import type { BarberSchedule } from '@/lib/types/dashboard'
 
@@ -55,6 +56,33 @@ describe('calcularVariacaoPct', () => {
 
   it('retorna 0 quando atual === referência', () => {
     expect(calcularVariacaoPct(100, 100)).toBe(0)
+  })
+})
+
+describe('calcularRitmo', () => {
+  it('mantém tudo em zero quando não há dados', () => {
+    expect(calcularRitmo(0, 0, 0)).toEqual({ realPct: 0, projPct: 0, tickPct: 0, pctDaMedia: 0 })
+  })
+
+  it('escala pelo maior valor com 15% de folga', () => {
+    // maior = 100 → escala 115 → 100/115 = 86.9%
+    const r = calcularRitmo(50, 100, 80)
+    expect(r.projPct).toBeCloseTo(86.96, 1)
+    expect(r.realPct).toBeCloseTo(43.48, 1)
+    expect(r.tickPct).toBeCloseTo(69.57, 1)
+  })
+
+  it('nenhuma posição encosta em 100% (folga garantida)', () => {
+    const r = calcularRitmo(900, 1000, 1200)
+    expect(Math.max(r.realPct, r.projPct, r.tickPct)).toBeLessThan(100)
+  })
+
+  it('calcula o percentual da projeção sobre a média', () => {
+    expect(calcularRitmo(30, 86, 100).pctDaMedia).toBeCloseTo(86, 5)
+  })
+
+  it('evita divisão por zero quando não há média', () => {
+    expect(calcularRitmo(100, 200, 0).pctDaMedia).toBe(0)
   })
 })
 

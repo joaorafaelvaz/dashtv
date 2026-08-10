@@ -24,6 +24,28 @@ export function calcularVariacaoPct(atual: number, referencia: number): number {
   return ((atual - referencia) / referencia) * 100
 }
 
+/**
+ * Posições da barra de ritmo do dia, em % da largura.
+ *
+ * A escala é o maior entre realizado, projetado e média, com 15% de folga —
+ * assim nenhum dos três encosta na borda e a barra se ajusta sozinha ao longo
+ * do dia. `pctDaMedia` é o texto de apoio ("projeção alcança X% da média").
+ */
+export function calcularRitmo(
+  faturamento: number,
+  projetado: number,
+  media: number,
+): { realPct: number; projPct: number; tickPct: number; pctDaMedia: number } {
+  const escala = Math.max(faturamento, projetado, media) * 1.15
+  if (escala <= 0) return { realPct: 0, projPct: 0, tickPct: 0, pctDaMedia: 0 }
+  return {
+    realPct: (faturamento / escala) * 100,
+    projPct: (projetado / escala) * 100,
+    tickPct: (media / escala) * 100,
+    pctDaMedia: media > 0 ? (projetado / media) * 100 : 0,
+  }
+}
+
 /** Faixa de avaliação de um KPI, usada para colorir o valor no painel. */
 export type KpiTone = 'neutral' | 'good' | 'warn' | 'bad'
 

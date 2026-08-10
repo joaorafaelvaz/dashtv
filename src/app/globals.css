@@ -15,15 +15,32 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #0a0a0a;
-  color: #ffffff;
+  background-color: #050506;
+  color: #fafafa;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Números alinhados em coluna: essencial num painel cheio de tabelas */
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Scroll suave para animações */
-@media (prefers-reduced-motion: no-preference) {
-  * {
-    scroll-behavior: smooth;
+/* Entrada escalonada do painel */
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: rise 0.7s cubic-bezier(0.22, 0.68, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 }

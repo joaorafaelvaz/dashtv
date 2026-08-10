@@ -4,8 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type { DashboardData } from '@/lib/types/dashboard'
 import DashboardHeader from '@/components/DashboardHeader'
 import FaturamentoHero from '@/components/FaturamentoHero'
-import KpiGrid from '@/components/KpiGrid'
-import ProjecaoGrid from '@/components/ProjecaoGrid'
+import PulseSection from '@/components/PulseSection'
 import RankingSection from '@/components/RankingSection'
 import StatusBar from '@/components/StatusBar'
 import TopBarbeiros from '@/components/TopBarbeiros'
@@ -36,7 +35,10 @@ export default function DashboardTV() {
     scale()
     window.addEventListener('resize', scale)
     return () => window.removeEventListener('resize', scale)
-  }, [])
+    // Depende de `data`: no primeiro render o canvas ainda não está no DOM
+    // (a tela é a de carregamento), então canvasRef.current é null e a escala
+    // nunca era aplicada. Passava despercebido na TV, onde a escala é 1.
+  }, [data])
 
   // ---------- Busca de dados ----------
   const fetchData = useCallback(async () => {
@@ -66,17 +68,17 @@ export default function DashboardTV() {
   // ---------- Estados de carregamento e erro ----------
   if (hasError && !data) {
     return (
-      <div className="w-screen h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4">
-        <p className="text-red-500 text-3xl font-bold">⚠ Erro de conexão</p>
-        <p className="text-gray-500 text-xl">Tentando reconectar automaticamente...</p>
+      <div className="w-screen h-screen bg-ink flex flex-col items-center justify-center gap-4">
+        <p className="text-neg text-3xl font-bold">⚠ Erro de conexão</p>
+        <p className="text-fg-muted text-xl">Tentando reconectar automaticamente...</p>
       </div>
     )
   }
 
   if (!data) {
     return (
-      <div className="w-screen h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <p className="text-[#D4AF37] text-3xl font-bold animate-pulse">
+      <div className="w-screen h-screen bg-ink flex items-center justify-center">
+        <p className="text-gold text-3xl font-bold animate-pulse">
           Carregando dashboard...
         </p>
       </div>
@@ -85,43 +87,43 @@ export default function DashboardTV() {
 
   // ---------- Dashboard principal ----------
   return (
-    <div className="w-screen h-screen bg-[#0A0A0A] overflow-hidden">
+    <div className="w-screen h-screen bg-ink overflow-hidden">
       <div
         ref={canvasRef}
-        className="bg-[#0A0A0A] flex flex-col"
+        className="bg-ink flex flex-col overflow-hidden"
         style={{ width: CANVAS_W, height: CANVAS_H }}
       >
         <DashboardHeader />
 
         <FaturamentoHero
           faturamento={data.faturamento_hoje}
-          variacaoPct={data.variacao_media_pct}
           media3meses={data.media_3meses}
-          servicosRealizados={data.servicos_realizados}
+          faturamentoProjetado={data.faturamento_projetado}
+          atendimentos={data.atendimentos}
         />
 
-        <KpiGrid
+        <PulseSection
           agendamentos={data.agendamentos_dia}
           slotsLivres={data.slots_livres}
           emAtendimento={data.em_atendimento}
-          servicosRealizados={data.servicos_realizados}
-          taxaOcupacao={data.taxa_ocupacao}
-          taxaCancelamento={data.taxa_cancelamento}
-          taxaNoShow={data.taxa_no_show}
           atendimentos={data.atendimentos}
+          servicosRealizados={data.servicos_realizados}
           walkIns={data.walk_ins}
+          taxaOcupacao={data.taxa_ocupacao}
+          taxaNoShow={data.taxa_no_show}
+          taxaCancelamento={data.taxa_cancelamento}
+          unidadesFaturando={data.unidades_faturando}
+          unidadesTotal={data.unidades_total}
         />
 
         <TopBarbeiros barbeiros={data.top_barbeiros} />
 
-        <ProjecaoGrid
-          faturamentoProjetado={data.faturamento_projetado}
-          media3meses={data.media_3meses}
-        />
-
         <RankingSection ranking={data.ranking} />
 
-        <StatusBar ultimaAtualizacao={data.ultima_atualizacao} />
+        <StatusBar
+          ultimaAtualizacao={data.ultima_atualizacao}
+          unidadesTotal={data.unidades_total}
+        />
       </div>
     </div>
   )

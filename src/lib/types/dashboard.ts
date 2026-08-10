@@ -41,6 +41,8 @@ export interface DashboardData {
   tempo_medio_atendimento: number // minutos médios por atendimento concluído
   atendimentos: number           // serviços realizados hoje (agendados + walk-in)
   walk_ins: number               // comandas de clientes sem agendamento hoje
+  unidades_total: number         // unidades ativas da rede
+  unidades_faturando: number     // unidades com faturamento > 0 hoje
   top_barbeiros: TopBarbeiro[]   // top 3 por serviços realizados
   ranking: RankingUnidade[]      // todas as unidades, ordem DESC por faturamento_dia
   ultima_atualizacao: string     // ISO timestamp
