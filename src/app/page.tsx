@@ -108,8 +108,8 @@ export default function DashboardTV() {
           taxaOcupacao={data.taxa_ocupacao}
           taxaCancelamento={data.taxa_cancelamento}
           taxaNoShow={data.taxa_no_show}
-          tempoMedioAtendimento={data.tempo_medio_atendimento}
-          produtosVendidos={data.produtos_vendidos}
+          atendimentos={data.atendimentos}
+          walkIns={data.walk_ins}
         />
 
         <TopBarbeiros barbeiros={data.top_barbeiros} />

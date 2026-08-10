@@ -13,7 +13,8 @@ import {
   getTaxaCancelamento,
   getTempoMedioAtendimento,
   getTopBarbeiros,
-  getProdutosVendidos,
+  getAtendimentosRealizados,
+  getWalkIns,
 } from '@/lib/db/queries'
 import { calcularSlotsLivres, calcularVariacaoPct } from '@/lib/utils/dashboard'
 import type { DashboardData } from '@/lib/types/dashboard'
@@ -44,7 +45,8 @@ async function fetchDashboardData(): Promise<DashboardData> {
     taxaCancelamento,
     tempoMedioAtendimento,
     topBarbeiros,
-    produtosVendidos,
+    atendimentos,
+    walkIns,
   ] = await Promise.all([
     getFaturamentoHoje(),
     getAgendamentosDia(),
@@ -58,7 +60,8 @@ async function fetchDashboardData(): Promise<DashboardData> {
     getTaxaCancelamento(),
     getTempoMedioAtendimento(),
     getTopBarbeiros(),
-    getProdutosVendidos(),
+    getAtendimentosRealizados(),
+    getWalkIns(),
   ])
 
   const slotsLivres = calcularSlotsLivres(barbers, agendamentosDia)
@@ -85,7 +88,8 @@ async function fetchDashboardData(): Promise<DashboardData> {
     taxa_cancelamento: taxaCancelamento,
     taxa_no_show: taxaNoShow,
     tempo_medio_atendimento: tempoMedioAtendimento,
-    produtos_vendidos: produtosVendidos,
+    atendimentos,
+    walk_ins: walkIns,
     top_barbeiros: topBarbeiros,
     ranking,
     ultima_atualizacao: new Date().toISOString(),
@@ -98,7 +102,8 @@ const REQUIRED_FIELDS: (keyof DashboardData)[] = [
   'taxa_cancelamento',
   'taxa_no_show',
   'tempo_medio_atendimento',
-  'produtos_vendidos',
+  'atendimentos',
+  'walk_ins',
   'top_barbeiros',
 ]
 

@@ -9,6 +9,13 @@ const VENDAS_STATUS_VALIDA = 1
 /** agendas.status = 1 = "Agendado" (cliente ainda não atendido). */
 const AGENDA_STATUS_AGENDADO = 1
 /**
+ * produtos.tipo = 'ser' → serviço (corte, barba…).
+ * Outros valores: 'pac' (venda de pacote), 'proins'/'probar'/'proemp' (produtos).
+ * Sessão de pacote consumida entra como item 'ser' com vendas_produtos.pacote
+ * preenchido, então contar 'ser' já cobre atendimento via pacote.
+ */
+const PRODUTO_TIPO_SERVICO = 'ser'
+/**
  * agendas.status = 3 = "No Show" no modelo do sistema, mas na prática não é
  * populado de forma confiável durante o dia. Por isso o no-show é calculado
  * por heurística em getTaxaNoShow. Esta constante é usada só para excluir
@@ -119,20 +126,26 @@ export async function getEmAtendimento(): Promise<number> {
   const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COUNT(*) AS total
      FROM agendas a
+     INNER JOIN usuarios u  ON a.colaborador = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
      WHERE DATE(a.data) = CURDATE()
        AND a.checkin = 1
-       AND a.checkout = 0`,
+       AND a.checkout = 0
+       AND un.status = 1`,
   )
   return Number(rows[0]?.total ?? 0)
 }
 
-/** Total de atendimentos concluídos hoje (checkout realizado) */
+/** Atendimentos de hoje que vieram de agendamento e já tiveram checkout. */
 export async function getServicosRealizados(): Promise<number> {
   const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COUNT(*) AS total
      FROM agendas a
+     INNER JOIN usuarios u  ON a.colaborador = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
      WHERE DATE(a.data) = CURDATE()
-       AND a.checkout = 1`,
+       AND a.checkout = 1
+       AND un.status = 1`,
   )
   return Number(rows[0]?.total ?? 0)
 }
@@ -234,8 +247,9 @@ export async function getTaxaCancelamento(): Promise<number> {
  * Ex.: agendado 10h, corte. Às 11h ainda status=1, sem check-in/checkout e sem
  * venda do cliente hoje → conta como no-show.
  *
- * Regra extra: se `fechamento` não for NULL, o atendimento foi fechado
- * (cliente atendido/pago) — nunca conta como no-show.
+ * Regra extra: `fechamento` referencia `agendas_fechamentos` — bloqueio de
+ * agenda (folga, feriado, horário bloqueado). Se não for NULL, o slot nem é
+ * um atendimento real, então nunca conta como no-show.
  */
 export async function getTaxaNoShow(): Promise<number> {
   const [rows] = await pool.execute<(RowDataPacket & { taxa: number })[]>(
@@ -319,9 +333,40 @@ export async function getTopBarbeiros(): Promise<TopBarbeiro[]> {
 }
 
 /**
- * Total de vendas (produtos/serviços) finalizadas hoje em todas as unidades ativas.
+ * Total de atendimentos (serviços) efetivamente realizados hoje.
+ *
+ * Conta os itens de SERVIÇO das comandas válidas, em vez de contar comandas.
+ * Vantagens sobre a contagem antiga de `vendas`:
+ *  - inclui walk-in (é baseado em venda, não em agenda);
+ *  - não depende do checkout ter sido marcado pelo barbeiro;
+ *  - corte + barba na mesma comanda contam como 2 atendimentos;
+ *  - venda só de produto não infla o número.
  */
-export async function getProdutosVendidos(): Promise<number> {
+export async function getAtendimentosRealizados(): Promise<number> {
+  const [rows] = await pool.execute<TotalRow[]>(
+    `SELECT COALESCE(ROUND(SUM(vp.quantidade)), 0) AS total
+     FROM vendas_produtos vp
+     INNER JOIN produtos p  ON p.id = vp.produto AND p.tipo = ?
+     INNER JOIN vendas v    ON v.id = vp.venda
+     INNER JOIN usuarios u  ON v.usuario = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
+     WHERE DATE(v.data_criacao) = CURDATE()
+       AND v.comanda_temp = 0
+       AND v.status = ?
+       AND un.status = 1`,
+    [PRODUTO_TIPO_SERVICO, VENDAS_STATUS_VALIDA],
+  )
+  return Number(rows[0]?.total ?? 0)
+}
+
+/**
+ * Walk-ins: comandas de hoje de clientes que não tinham agendamento hoje
+ * (inclui venda sem cliente identificado).
+ *
+ * Definido por ausência de agenda, e não por "total menos agendados" — assim
+ * um checkout esquecido pelo barbeiro não vira walk-in falso.
+ */
+export async function getWalkIns(): Promise<number> {
   const [rows] = await pool.execute<TotalRow[]>(
     `SELECT COUNT(*) AS total
      FROM vendas v
@@ -330,7 +375,15 @@ export async function getProdutosVendidos(): Promise<number> {
      WHERE DATE(v.data_criacao) = CURDATE()
        AND v.comanda_temp = 0
        AND v.status = ?
-       AND un.status = 1`,
+       AND un.status = 1
+       AND (
+         v.cliente IS NULL
+         OR NOT EXISTS (
+           SELECT 1 FROM agendas a
+           WHERE a.cliente = v.cliente
+             AND DATE(a.data) = CURDATE()
+         )
+       )`,
     [VENDAS_STATUS_VALIDA],
   )
   return Number(rows[0]?.total ?? 0)

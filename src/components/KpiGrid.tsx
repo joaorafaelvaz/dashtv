@@ -6,10 +6,6 @@ function formatPercent(v: number): string {
   return `${(v ?? 0).toFixed(1)}%`
 }
 
-function formatMinutes(v: number): string {
-  return `${v ?? 0}min`
-}
-
 interface Props {
   agendamentos: number
   slotsLivres: number
@@ -18,8 +14,8 @@ interface Props {
   taxaOcupacao: number
   taxaCancelamento: number
   taxaNoShow: number
-  tempoMedioAtendimento: number
-  produtosVendidos: number
+  atendimentos: number
+  walkIns: number
 }
 
 export default function KpiGrid({
@@ -30,8 +26,8 @@ export default function KpiGrid({
   taxaOcupacao,
   taxaCancelamento,
   taxaNoShow,
-  tempoMedioAtendimento,
-  produtosVendidos,
+  atendimentos,
+  walkIns,
 }: Props) {
   // Só métricas com "bom/ruim" intrínseco recebem cor. Contagens ficam neutras.
   const toneOcupacao = toneHigherIsBetter(taxaOcupacao, 50, 30)
@@ -45,11 +41,11 @@ export default function KpiGrid({
       <KpiCard compact icon="📊" label="Tx. Ocupação"      value={taxaOcupacao}           formatFn={formatPercent} tone={toneOcupacao} />
 
       <KpiCard compact icon="✂️" label="Em Atendimento"   value={emAtendimento}          formatFn={formatNumber} />
-      <KpiCard compact icon="✅" label="Serv. Realizados"  value={servicosRealizados}     formatFn={formatNumber} />
-      <KpiCard compact icon="💈" label="Atendimentos"      value={produtosVendidos}       formatFn={formatNumber} />
+      <KpiCard compact icon="💈" label="Atendimentos"      value={atendimentos}           formatFn={formatNumber} />
+      <KpiCard compact icon="✅" label="Via Agenda"        value={servicosRealizados}     formatFn={formatNumber} />
 
       <KpiCard compact icon="👻" label="No-Show"           value={taxaNoShow}             formatFn={formatPercent} tone={toneNoShow} />
-      <KpiCard compact icon="⏱️" label="Tempo Médio"       value={tempoMedioAtendimento}  formatFn={formatMinutes} />
+      <KpiCard compact icon="🚶" label="Walk-in"           value={walkIns}                formatFn={formatNumber} />
       <KpiCard compact icon="❌" label="Cancelamentos"     value={taxaCancelamento}       formatFn={formatPercent} tone={toneCancelamento} />
     </section>
   )
