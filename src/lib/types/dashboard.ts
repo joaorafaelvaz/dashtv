@@ -39,7 +39,8 @@ export interface DashboardData {
   taxa_cancelamento: number      // % de agendamentos cancelados sobre o total
   taxa_no_show: number           // % de agendamentos passados sem check-in
   tempo_medio_atendimento: number // minutos médios por atendimento concluído
-  produtos_vendidos: number      // total de vendas finalizadas hoje
+  atendimentos: number           // serviços realizados hoje (agendados + walk-in)
+  walk_ins: number               // comandas de clientes sem agendamento hoje
   top_barbeiros: TopBarbeiro[]   // top 3 por serviços realizados
   ranking: RankingUnidade[]      // todas as unidades, ordem DESC por faturamento_dia
   ultima_atualizacao: string     // ISO timestamp
