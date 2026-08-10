@@ -73,6 +73,11 @@ async function fetchDashboardData(): Promise<DashboardData> {
 
   const faturamentoProjetado = faturamentoHoje + faturamentoPendente
 
+  // Cobertura da rede sai do próprio ranking — sem query adicional.
+  // Unidades zeradas não aparecem em nenhum ranking, então este é o único
+  // lugar do painel onde elas ficam visíveis.
+  const unidadesFaturando = ranking.filter((u) => u.faturamento_dia > 0).length
+
   return {
     faturamento_hoje: faturamentoHoje,
     agendamentos_dia: agendamentosDia,
@@ -91,6 +96,8 @@ async function fetchDashboardData(): Promise<DashboardData> {
     tempo_medio_atendimento: tempoMedioAtendimento,
     atendimentos,
     walk_ins: walkIns,
+    unidades_total: ranking.length,
+    unidades_faturando: unidadesFaturando,
     top_barbeiros: topBarbeiros,
     ranking,
     ultima_atualizacao: new Date().toISOString(),
@@ -105,6 +112,7 @@ const REQUIRED_FIELDS: (keyof DashboardData)[] = [
   'tempo_medio_atendimento',
   'atendimentos',
   'walk_ins',
+  'unidades_faturando',
   'top_barbeiros',
 ]
 

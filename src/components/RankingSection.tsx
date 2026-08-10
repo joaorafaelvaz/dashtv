@@ -12,98 +12,102 @@ interface RowProps {
   variant: 'top' | 'bottom'
 }
 
+/** Remove o prefixo "Brasil - ", constante em toda unidade e que só rouba espaço. */
+function nomeCurto(u: RankingUnidade): { local: string; uf: string } {
+  const bruto = u.nome ?? `${u.cidade} — ${u.bairro}`
+  const partes = bruto.split(' - ').filter((p) => p.trim() !== 'Brasil')
+  const uf = partes.length > 2 && partes[0].length === 2 ? partes[0] : ''
+  const local = (uf ? partes.slice(1) : partes).join(' — ')
+  return { local, uf }
+}
+
 function RankingRow({ pos, unidade, maxFaturamento, variant }: RowProps) {
   const pct = maxFaturamento > 0
     ? Math.max(4, (unidade.faturamento_dia / maxFaturamento) * 100)
     : 4
-
   const isTop = variant === 'top'
-  const posColor = isTop ? 'text-green-400' : 'text-red-400'
-  const barColor = isTop ? 'bg-green-500' : 'bg-red-600'
-
-  const unitLabel = unidade.nome ?? `${unidade.cidade} — ${unidade.bairro}`
+  const { local, uf } = nomeCurto(unidade)
 
   return (
-    <div className="flex items-center gap-3">
-      <span className={`text-sm font-bold w-5 shrink-0 ${posColor}`}>{pos}</span>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-baseline mb-1">
-          <span className="text-white text-sm font-medium truncate max-w-[240px]">
-            {unitLabel}
-          </span>
-          <span className="text-gray-300 text-sm shrink-0 ml-2">
-            {formatCurrency(unidade.faturamento_dia)}
-          </span>
+    <div className="grid grid-cols-[24px_1fr_132px] items-center gap-4">
+      <span className="text-[15px] font-semibold text-fg-dim text-right">{pos}</span>
+
+      <div className="min-w-0">
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-[17px] font-medium tracking-[-0.01em] truncate">{local}</span>
+          {uf && (
+            <span className="text-xs font-semibold tracking-[0.08em] text-fg-dim shrink-0">
+              {uf}
+            </span>
+          )}
         </div>
-        <div className="h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
+        <div className="h-[5px] rounded-full bg-surface2 mt-2.5 overflow-hidden">
           <div
-            className={`h-full ${barColor} rounded-full transition-all duration-700`}
+            className={`h-full rounded-full transition-[width] duration-[1300ms] ease-out ${
+              isTop ? 'bg-gold' : 'bg-neg'
+            }`}
             style={{ width: `${pct}%` }}
           />
         </div>
       </div>
+
+      <span
+        className={`text-xl font-semibold tracking-[-0.025em] text-right ${
+          isTop ? 'text-fg' : 'text-neg'
+        }`}
+      >
+        {formatCurrency(unidade.faturamento_dia)}
+      </span>
     </div>
   )
 }
 
 export default function RankingSection({ ranking }: Props) {
-  // Top 5: maiores faturamentos (início do array já ordenado DESC)
   const top5 = ranking.slice(0, 5)
-  // Bottom 5: menores faturamentos com faturamento > 0 (exclui unidades fechadas no dia)
+  // Bottom 5: menores faturamentos com valor > 0 (unidades zeradas aparecem
+  // na cobertura da rede, não aqui)
   const bottom5 = ranking.filter((u) => u.faturamento_dia > 0).slice(-5).reverse()
 
-  // Cada grupo tem seu próprio máximo para escalar barras de forma legível.
-  // Usar o máximo global tornaria as barras do Bottom 5 quase invisíveis.
-  // Atenção: bottom5 está em ordem crescente (menor primeiro), então o máximo
-  // é o ÚLTIMO item — usar o primeiro faz todas as barras estourarem 100%.
+  // bottom5 está em ordem crescente: o máximo é o último, não o primeiro
   const maxTop = top5[0]?.faturamento_dia ?? 1
   const maxBottom = bottom5.length > 0
     ? Math.max(...bottom5.map((u) => u.faturamento_dia))
     : 1
 
   return (
-    <section className="flex-1 px-5 py-3 min-h-0 overflow-hidden">
-      <div className="bg-[#141414] rounded-2xl border border-[#D4AF37]/15 p-5 h-full flex flex-col gap-4">
-
-        {/* TOP 5 */}
-        <div>
-          <p className="text-[#FFD700] text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-            🏆 Top 5 Unidades
-          </p>
-          <div className="space-y-3">
-            {top5.map((u, i) => (
-              <RankingRow
-                key={u.id}
-                pos={i + 1}
-                unidade={u}
-                maxFaturamento={maxTop}
-                variant="top"
-              />
-            ))}
-          </div>
+    <section className="flex-1 min-h-0 overflow-hidden px-[60px] flex flex-col gap-5">
+      <div>
+        <div className="flex items-center gap-4 mb-5 rise" style={{ animationDelay: '0.46s' }}>
+          <span className="text-sm font-medium uppercase tracking-[0.14em] text-fg-muted">
+            Maiores faturamentos
+          </span>
+          <span className="flex-1 h-px bg-white/[0.07]" />
         </div>
-
-        {/* DIVISOR */}
-        <div className="border-t border-[#D4AF37]/20" />
-
-        {/* BOTTOM 5 */}
-        <div>
-          <p className="text-red-500 text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-            📉 Bottom 5 Unidades
-          </p>
-          <div className="space-y-3">
-            {bottom5.map((u, i) => (
-              <RankingRow
-                key={u.id}
-                pos={i + 1}
-                unidade={u}
-                maxFaturamento={maxBottom}
-                variant="bottom"
-              />
-            ))}
-          </div>
+        <div className="flex flex-col gap-3 rise" style={{ animationDelay: '0.46s' }}>
+          {top5.map((u, i) => (
+            <RankingRow key={u.id} pos={i + 1} unidade={u} maxFaturamento={maxTop} variant="top" />
+          ))}
         </div>
+      </div>
 
+      <div>
+        <div className="flex items-center gap-4 mb-5 rise" style={{ animationDelay: '0.52s' }}>
+          <span className="text-sm font-medium uppercase tracking-[0.14em] text-neg">
+            Requerem atenção
+          </span>
+          <span className="flex-1 h-px bg-white/[0.07]" />
+        </div>
+        <div className="flex flex-col gap-3 rise" style={{ animationDelay: '0.52s' }}>
+          {bottom5.map((u, i) => (
+            <RankingRow
+              key={u.id}
+              pos={i + 1}
+              unidade={u}
+              maxFaturamento={maxBottom}
+              variant="bottom"
+            />
+          ))}
+        </div>
       </div>
     </section>
   )
