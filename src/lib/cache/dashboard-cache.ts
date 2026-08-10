@@ -29,7 +29,8 @@ interface CacheEntry {
 
 let memoryCache: CacheEntry | null = null
 let refreshTimer: ReturnType<typeof setInterval> | null = null
-let isRefreshing = false
+/** Refresh em andamento. Requisições concorrentes aguardam este mesmo promise. */
+let refreshPromise: Promise<void> | null = null
 
 async function fetchDashboardData(): Promise<DashboardData> {
   const [
@@ -135,19 +136,31 @@ function saveToDisk(entry: CacheEntry): void {
   }
 }
 
+/**
+ * Atualiza o cache. Chamadas concorrentes compartilham o mesmo refresh em vez
+ * de retornarem de imediato — caso contrário, no cold start a segunda
+ * requisição voltava com o cache ainda vazio e derrubava a API com
+ * "Cache indisponível" enquanto a primeira ainda consultava o banco.
+ */
 async function refresh(): Promise<void> {
-  if (isRefreshing) return
-  isRefreshing = true
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = (async () => {
+    try {
+      const data = await fetchDashboardData()
+      const entry: CacheEntry = { data, refreshed_at: data.ultima_atualizacao }
+      memoryCache = entry
+      saveToDisk(entry)
+      console.log('[cache] Atualizado em', entry.refreshed_at)
+    } catch (err) {
+      console.error('[cache] Falha no refresh — mantendo cache anterior:', err)
+    }
+  })()
+
   try {
-    const data = await fetchDashboardData()
-    const entry: CacheEntry = { data, refreshed_at: data.ultima_atualizacao }
-    memoryCache = entry
-    saveToDisk(entry)
-    console.log('[cache] Atualizado em', entry.refreshed_at)
-  } catch (err) {
-    console.error('[cache] Falha no refresh — mantendo cache anterior:', err)
+    await refreshPromise
   } finally {
-    isRefreshing = false
+    refreshPromise = null
   }
 }
 
