@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Barbearia VIP — Painel Déco</title>
+<style>
+/* ============================================================
+   BARBEARIA VIP — PAINEL DÉCO
+   Proposta de redesign · TV portrait 1080×1920
+   ============================================================ */
+
+:root{
+  --ink:      #0A0908;
+  --ink-2:    #100E0A;
+  --panel:    #14110B;
+  --gold:     #C6A249;
+  --gold-lt:  #EBCE84;
+  --gold-dim: #6E5A28;
+  --cream:    #EFE7D6;
+  --muted:    #877E6D;
+  --pos:      #86AE6C;
+  --neg:      #C4573F;
+  --warn:     #D8A33F;
+
+  --display: 'Bodoni MT','Didot','Playfair Display',Georgia,'Times New Roman',serif;
+  --label:   'Copperplate Gothic Light','Copperplate','Optima','Century Gothic','Futura','Trebuchet MS',sans-serif;
+
+  --rule: rgba(198,162,73,.28);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#050505;overflow:hidden}
+
+.stage{
+  position:fixed;inset:0;display:grid;place-items:center;
+  background:
+    radial-gradient(120% 80% at 50% 0%, #16130d 0%, #050505 70%);
+}
+
+/* ---------- Canvas em tamanho real de TV ---------- */
+.canvas{
+  position:relative;
+  width:1080px;height:1920px;
+  transform-origin:center center;
+  background:
+    radial-gradient(140% 60% at 50% -10%, #1A160E 0%, rgba(10,9,8,0) 62%),
+    radial-gradient(100% 50% at 50% 108%, #17130C 0%, rgba(10,9,8,0) 60%),
+    var(--ink);
+  color:var(--cream);
+  font-family:var(--label);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 0 120px rgba(0,0,0,.9), 0 0 0 1px rgba(198,162,73,.14);
+}
+
+/* Grão + vinheta: dá "papel" ao preto, evita a chapa digital morta */
+.grain{
+  position:absolute;inset:0;pointer-events:none;z-index:60;
+  opacity:.16;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'>\
+<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/>\
+<feColorMatrix type='saturate' values='0'/></filter>\
+<rect width='220' height='220' filter='url(%23n)'/></svg>");
+}
+.vignette{
+  position:absolute;inset:0;pointer-events:none;z-index:59;
+  background:radial-gradient(80% 55% at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.55) 100%);
+}
+
+/* ---------- Tipografia base ---------- */
+.lbl{
+  font-family:var(--label);
+  font-size:15px;letter-spacing:.30em;text-transform:uppercase;
+  color:var(--muted);
+}
+.num{
+  font-family:var(--display);
+  font-variant-numeric:lining-nums tabular-nums;
+  font-weight:700;line-height:.86;
+  letter-spacing:-.01em;
+}
+
+/* Fio duplo déco */
+.rule2{height:3px;background:
+  linear-gradient(var(--rule),var(--rule)) top/100% 1px no-repeat,
+  linear-gradient(var(--rule),var(--rule)) bottom/100% 1px no-repeat;}
+
+/* =====================  MASTHEAD  ===================== */
+.masthead{
+  position:relative;padding:34px 56px 26px;flex:none;
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+}
+.masthead::after{
+  content:"";position:absolute;left:56px;right:56px;bottom:0;height:3px;
+  background:
+    linear-gradient(var(--rule),var(--rule)) top/100% 1px no-repeat,
+    linear-gradient(var(--rule),var(--rule)) bottom/100% 1px no-repeat;
+}
+.mh-side{display:flex;flex-direction:column;gap:6px}
+.mh-side.right{align-items:flex-end;text-align:right}
+.clock{
+  font-family:var(--display);font-size:46px;font-weight:700;color:var(--cream);
+  font-variant-numeric:lining-nums tabular-nums;line-height:1;
+}
+.wordmark{
+  text-align:center;
+}
+.wordmark .brand{
+  font-family:var(--label);font-size:40px;letter-spacing:.34em;
+  color:var(--gold-lt);text-transform:uppercase;line-height:1;
+  text-shadow:0 0 26px rgba(198,162,73,.35);
+}
+.wordmark .sub{
+  margin-top:12px;font-size:13px;letter-spacing:.44em;color:var(--muted);
+  text-transform:uppercase;
+}
+/* losango déco entre marca e subtítulo */
+.diamonds{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.diamonds i{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);opacity:.85}
+.diamonds i:nth-child(2){opacity:.5}
+.diamonds i:nth-child(3){opacity:.28}
+
+.live{display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.28em;color:var(--muted)}
+.live .dot{width:9px;height:9px;border-radius:50%;background:var(--pos);
+  box-shadow:0 0 0 0 rgba(134,174,108,.6);animation:ping 2.6s infinite}
+@keyframes ping{
+  0%{box-shadow:0 0 0 0 rgba(134,174,108,.55)}
+  70%{box-shadow:0 0 0 14px rgba(134,174,108,0)}
+  100%{box-shadow:0 0 0 0 rgba(134,174,108,0)}
+}
+
+/* =====================  ATO I — O DIA  ===================== */
+.act-day{padding:32px 56px 20px;flex:none}
+.day-grid{display:grid;grid-template-columns:1fr 300px;gap:40px;align-items:end}
+
+.hero-lbl{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+.hero-lbl .line{height:1px;flex:1;background:var(--rule)}
+
+/* baseline comum: R$ · número · centavos assentam na mesma linha */
+.hero-money{display:flex;align-items:baseline;gap:20px}
+.hero-money .cur{
+  font-family:var(--display);font-size:48px;color:var(--gold);font-weight:700;
+}
+.hero-money .val{
+  font-family:var(--display);font-size:156px;font-weight:700;line-height:.9;
+  color:var(--gold-lt);
+  font-variant-numeric:lining-nums tabular-nums;
+  text-shadow:0 0 60px rgba(198,162,73,.28);
+  margin-left:-6px;
+}
+.hero-money .cents{font-size:64px;color:var(--gold);opacity:.7;margin-left:-8px}
+
+/* coluna de apoio, hierarquia claramente menor */
+.side-stats{display:flex;flex-direction:column;gap:18px}
+.stat{border-top:1px solid var(--rule);padding-top:12px}
+.stat .k{font-size:11px;letter-spacing:.26em;color:var(--muted);text-transform:uppercase}
+.stat .v{font-family:var(--display);font-size:40px;font-weight:700;color:var(--cream);margin-top:6px;
+  font-variant-numeric:lining-nums tabular-nums;line-height:1}
+.stat .v small{font-size:20px;color:var(--muted);margin-right:4px}
+
+/* --- Barra de ritmo: substitui o "-47% vermelho" --- */
+.pace{margin-top:30px;padding-top:22px} /* espaço para o rótulo MÉDIA */
+.pace-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.pace-head .t{font-size:12px;letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
+.pace-head .q{font-family:var(--display);font-size:22px;color:var(--cream)}
+.pace-head .q b{color:var(--gold-lt);font-weight:700}
+
+.track{
+  position:relative;height:34px;background:#000;
+  border:1px solid rgba(198,162,73,.22);
+}
+/* hachura déco de fundo */
+.track::before{
+  content:"";position:absolute;inset:0;opacity:.35;
+  background:repeating-linear-gradient(-45deg,
+    rgba(198,162,73,.10) 0 1px, transparent 1px 9px);
+}
+.fill-proj{
+  position:absolute;top:0;bottom:0;left:0;width:0;
+  background:repeating-linear-gradient(-45deg,
+    rgba(198,162,73,.30) 0 6px, rgba(198,162,73,.12) 6px 12px);
+  border-right:1px solid var(--gold);
+  transition:width 1.6s cubic-bezier(.2,.7,.2,1) .5s;
+}
+.fill-real{
+  position:absolute;top:0;bottom:0;left:0;width:0;
+  background:linear-gradient(180deg,var(--gold-lt),var(--gold));
+  transition:width 1.8s cubic-bezier(.2,.7,.2,1) .35s;
+  box-shadow:0 0 26px rgba(198,162,73,.4);
+}
+/* marca da média = referência, não julgamento */
+.bench{position:absolute;top:-8px;bottom:-8px;width:2px;background:var(--cream);opacity:.9}
+.bench::after{
+  content:"MÉDIA";position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+  font-size:10px;letter-spacing:.22em;color:var(--cream);white-space:nowrap;
+}
+.pace-legend{display:flex;gap:26px;margin-top:16px;font-size:11px;letter-spacing:.2em;color:var(--muted)}
+.pace-legend i{display:inline-block;width:16px;height:8px;margin-right:8px;vertical-align:middle}
+.sw-real{background:linear-gradient(180deg,var(--gold-lt),var(--gold))}
+.sw-proj{background:repeating-linear-gradient(-45deg,rgba(198,162,73,.45) 0 4px,rgba(198,162,73,.15) 4px 8px);
+  border:1px solid rgba(198,162,73,.5)}
+
+/* =====================  POSTE DE BARBEIRO (divisor)  ===================== */
+.pole{
+  height:5px;flex:none;margin:10px 56px;
+  background:repeating-linear-gradient(115deg,
+    var(--gold) 0 22px, transparent 22px 44px, rgba(239,231,214,.5) 44px 52px, transparent 52px 74px);
+  opacity:.28;
+  background-size:200% 100%;
+  animation:slide 34s linear infinite;
+}
+@keyframes slide{to{background-position:200% 0}}
+
+/* =====================  ATO II — O PULSO  ===================== */
+.act-pulse{padding:22px 56px 18px;flex:none}
+.sec-head{display:flex;align-items:center;gap:18px;margin-bottom:20px}
+.sec-head .t{font-size:14px;letter-spacing:.38em;color:var(--gold);text-transform:uppercase;white-space:nowrap}
+.sec-head .line{height:1px;flex:1;background:var(--rule)}
+.sec-head .n{font-family:var(--display);font-size:15px;color:var(--gold-dim)}
+
+/* Funil: substitui cards soltos por uma narrativa do dia */
+.funnel{display:grid;grid-template-columns:1fr 34px 1fr 34px 1fr;align-items:center;margin-bottom:22px}
+.fn{text-align:center}
+.fn .k{font-size:11px;letter-spacing:.26em;color:var(--muted);text-transform:uppercase}
+.fn .v{font-family:var(--display);font-size:78px;font-weight:700;line-height:.9;margin-top:8px;
+  font-variant-numeric:lining-nums tabular-nums}
+.fn .m{font-size:11px;letter-spacing:.14em;color:var(--gold-dim);margin-top:8px}
+.chev{font-family:var(--display);font-size:40px;color:var(--gold-dim);text-align:center;line-height:1}
+
+/* Vitais: fios, não caixas */
+.vitals{display:grid;grid-template-columns:repeat(4,1fr)}
+.vt{padding:14px 20px;border-left:1px solid var(--rule);text-align:center}
+.vt:first-child{border-left:0}
+.vt .k{font-size:11px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase}
+.vt .v{font-family:var(--display);font-size:48px;font-weight:700;margin-top:8px;line-height:1;
+  font-variant-numeric:lining-nums tabular-nums}
+.vt .v .u{font-size:24px;opacity:.6;margin-left:2px}
+.tone-pos{color:var(--pos)} .tone-warn{color:var(--warn)} .tone-neg{color:var(--neg)} .tone-neutral{color:var(--cream)}
+
+/* Cobertura da rede — a métrica que faltava */
+.coverage{
+  margin-top:18px;display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:14px 4px;
+}
+.coverage .k{font-size:12px;letter-spacing:.26em;color:var(--muted);text-transform:uppercase}
+.coverage .v{font-family:var(--display);font-size:44px;font-weight:700;color:var(--cream);line-height:1;
+  font-variant-numeric:lining-nums tabular-nums}
+.coverage .v s{text-decoration:none;color:var(--muted);font-size:26px}
+.pips{display:flex;gap:5px;flex-wrap:wrap}
+.pips i{width:13px;height:13px;background:var(--gold);transform:rotate(45deg);opacity:.9}
+.pips i.off{background:transparent;box-shadow:inset 0 0 0 1px rgba(198,162,73,.38)}
+
+/* =====================  ATO III — A REDE  ===================== */
+.act-net{padding:20px 56px 0;flex:1;display:flex;flex-direction:column;min-height:0;gap:16px}
+
+/* Barbeiros: pódio tipográfico */
+.barbers{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.bb{padding:0 22px;border-left:1px solid var(--rule);position:relative}
+.bb:first-child{border-left:0;padding-left:0}
+.bb .rank{font-family:var(--display);font-size:50px;font-weight:700;color:var(--gold-dim);line-height:.8}
+.bb .nm{font-size:17px;letter-spacing:.06em;color:var(--cream);margin-top:10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb .un{font-size:11px;letter-spacing:.14em;color:var(--muted);margin-top:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb .vl{font-family:var(--display);font-size:34px;font-weight:700;color:var(--gold-lt);margin-top:10px;
+  font-variant-numeric:lining-nums tabular-nums}
+.bb .sv{font-size:11px;letter-spacing:.16em;color:var(--gold-dim);margin-top:4px}
+.bb:first-child .rank{color:var(--gold);font-size:64px}
+
+/* Leaderboard */
+.board{flex:1;display:flex;flex-direction:column;min-height:0;justify-content:space-between}
+.rows{display:flex;flex-direction:column;gap:10px;margin-top:2px}
+.row{display:grid;grid-template-columns:34px 1fr 148px;align-items:center;gap:14px}
+.row .pos{font-family:var(--display);font-size:26px;font-weight:700;color:var(--gold-dim);text-align:right;
+  font-variant-numeric:lining-nums tabular-nums}
+.row .body{min-width:0}
+.row .nm{font-size:16px;letter-spacing:.05em;color:var(--cream);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:10px;align-items:baseline}
+.row .nm em{font-style:normal;font-size:11px;letter-spacing:.18em;color:var(--gold-dim)}
+.row .bar{height:7px;background:#000;margin-top:7px;position:relative;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(198,162,73,.16)}
+.row .bar span{position:absolute;inset:0 auto 0 0;width:0;
+  transition:width 1.4s cubic-bezier(.2,.7,.2,1)}
+.up span{background:linear-gradient(90deg,var(--gold-dim),var(--gold-lt))}
+.dn span{background:linear-gradient(90deg,#5a2a20,var(--neg))}
+.row .vl{font-family:var(--display);font-size:26px;font-weight:700;text-align:right;color:var(--cream);
+  font-variant-numeric:lining-nums tabular-nums}
+.dn .vl{color:#E2A08C}
+
+.split{display:flex;align-items:center;gap:16px;margin:16px 0 10px}
+.split .t{font-size:12px;letter-spacing:.34em;text-transform:uppercase}
+.split .line{height:1px;flex:1;background:var(--rule)}
+.split.alert .t{color:var(--neg)}
+.split.top .t{color:var(--gold)}
+
+/* =====================  RODAPÉ  ===================== */
+.foot{
+  flex:none;margin:12px 56px 22px;padding-top:16px;border-top:1px solid var(--rule);
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:11px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;
+}
+
+/* =====================  ENTRADA ORQUESTRADA  ===================== */
+.rise{opacity:0;transform:translateY(22px);animation:rise .9s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.d1{animation-delay:.05s}.d2{animation-delay:.15s}.d3{animation-delay:.25s}
+.d4{animation-delay:.35s}.d5{animation-delay:.45s}.d6{animation-delay:.55s}
+.d7{animation-delay:.65s}.d8{animation-delay:.75s}.d9{animation-delay:.85s}
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="canvas" id="canvas">
+  <div class="grain"></div><div class="vignette"></div>
+
+  <!-- ══════════ MASTHEAD ══════════ -->
+  <header class="masthead rise d1">
+    <div class="mh-side">
+      <div class="clock" id="clock">15:42</div>
+      <div class="lbl" style="font-size:11px;letter-spacing:.26em">Segunda-feira</div>
+    </div>
+    <div class="wordmark">
+      <div class="brand">Barbearia VIP</div>
+      <div class="diamonds"><i></i><i></i><i></i></div>
+      <div class="sub">Dashboard Franqueadora</div>
+    </div>
+    <div class="mh-side right">
+      <div class="lbl" style="font-size:13px;letter-spacing:.2em;color:var(--cream)">10 ago. 2026</div>
+      <div class="live"><span class="dot"></span> Ao vivo</div>
+    </div>
+  </header>
+
+  <!-- ══════════ ATO I — O DIA ══════════ -->
+  <section class="act-day">
+    <div class="day-grid">
+      <div class="rise d2">
+        <div class="hero-lbl">
+          <span class="lbl">Faturamento do dia</span><span class="line"></span>
+        </div>
+        <div class="hero-money">
+          <span class="cur">R$</span>
+          <span class="val" id="hero">0</span>
+          <span class="cents num">,35</span>
+        </div>
+      </div>
+
+      <div class="side-stats rise d3">
+        <div class="stat">
+          <div class="k">Projeção do dia</div>
+          <div class="v"><small>R$</small>60.727</div>
+        </div>
+        <div class="stat">
+          <div class="k">Média · seg.</div>
+          <div class="v"><small>R$</small>70.624</div>
+        </div>
+        <div class="stat">
+          <div class="k">Ticket médio</div>
+          <div class="v"><small>R$</small>72,94</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ritmo do dia: contexto, não punição -->
+    <div class="pace rise d4">
+      <div class="pace-head">
+        <span class="t">Ritmo do dia</span>
+        <span class="q">projeção alcança <b>86%</b> da média</span>
+      </div>
+      <div class="track">
+        <div class="fill-proj" id="fp"></div>
+        <div class="fill-real" id="fr"></div>
+        <div class="bench" style="left:78%"></div>
+      </div>
+      <div class="pace-legend">
+        <span><i class="sw-real"></i>Realizado agora</span>
+        <span><i class="sw-proj"></i>Projetado até o fechamento</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="pole rise d4"></div>
+
+  <!-- ══════════ ATO II — O PULSO ══════════ -->
+  <section class="act-pulse">
+    <div class="sec-head rise d5">
+      <span class="n">I</span><span class="t">O Pulso</span><span class="line"></span>
+    </div>
+
+    <div class="funnel rise d5">
+      <div class="fn">
+        <div class="k">Agendados</div>
+        <div class="v" style="color:var(--cream)">918</div>
+        <div class="m">2.181 slots livres</div>
+      </div>
+      <div class="chev">›</div>
+      <div class="fn">
+        <div class="k">Em atendimento</div>
+        <div class="v" style="color:var(--gold-lt)">40</div>
+        <div class="m">agora nas cadeiras</div>
+      </div>
+      <div class="chev">›</div>
+      <div class="fn">
+        <div class="k">Atendimentos</div>
+        <div class="v" style="color:var(--cream)">512</div>
+        <div class="m">458 via agenda · 54 walk-in</div>
+      </div>
+    </div>
+
+    <div class="vitals rise d6">
+      <div class="vt"><div class="k">Ocupação</div><div class="v tone-neg">30<span class="u">%</span></div></div>
+      <div class="vt"><div class="k">No-show</div><div class="v tone-warn">8,2<span class="u">%</span></div></div>
+      <div class="vt"><div class="k">Cancelamento</div><div class="v tone-pos">4,1<span class="u">%</span></div></div>
+      <div class="vt"><div class="k">Walk-in</div><div class="v tone-neutral">54</div></div>
+    </div>
+
+    <div class="coverage rise d6">
+      <div>
+        <div class="k">Unidades faturando</div>
+        <div class="v" style="margin-top:6px">47<s> / 58</s></div>
+      </div>
+      <div class="pips" id="pips"></div>
+      <div style="text-align:right">
+        <div class="k">Sem venda hoje</div>
+        <div class="v tone-neg" style="margin-top:6px;color:var(--neg)">11</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ ATO III — A REDE ══════════ -->
+  <section class="act-net">
+    <div>
+      <div class="sec-head rise d7">
+        <span class="n">II</span><span class="t">Destaques do dia</span><span class="line"></span>
+      </div>
+      <div class="barbers rise d7">
+        <div class="bb">
+          <div class="rank">01</div>
+          <div class="nm">Luiz Martini</div>
+          <div class="un">SC · Florianópolis — Santa Mônica</div>
+          <div class="vl">R$ 946</div>
+          <div class="sv">15 serviços</div>
+        </div>
+        <div class="bb">
+          <div class="rank">02</div>
+          <div class="nm">Nico Correa</div>
+          <div class="un">MG · Barbacena — Centro</div>
+          <div class="vl">R$ 734</div>
+          <div class="sv">15 serviços</div>
+        </div>
+        <div class="bb">
+          <div class="rank">03</div>
+          <div class="nm">Pedrinho</div>
+          <div class="un">SC · Florianópolis — Coqueiros</div>
+          <div class="vl">R$ 660</div>
+          <div class="sv">12 serviços</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="split top rise d8"><span class="t">Maiores faturamentos</span><span class="line"></span></div>
+      <div class="rows">
+        <div class="row up rise d8"><div class="pos">1</div><div class="body">
+          <div class="nm">Florianópolis — Santa Mônica <em>SC</em></div>
+          <div class="bar"><span data-w="100"></span></div></div><div class="vl">R$ 4.641</div></div>
+        <div class="row up rise d8"><div class="pos">2</div><div class="body">
+          <div class="nm">Itajaí — Centro <em>SC</em></div>
+          <div class="bar"><span data-w="71"></span></div></div><div class="vl">R$ 3.290</div></div>
+        <div class="row up rise d8"><div class="pos">3</div><div class="body">
+          <div class="nm">Ponte Nova — Guarapiranga <em>MG</em></div>
+          <div class="bar"><span data-w="61"></span></div></div><div class="vl">R$ 2.810</div></div>
+        <div class="row up rise d9"><div class="pos">4</div><div class="body">
+          <div class="nm">Curitiba — Água Verde <em>PR</em></div>
+          <div class="bar"><span data-w="52"></span></div></div><div class="vl">R$ 2.411</div></div>
+        <div class="row up rise d9"><div class="pos">5</div><div class="body">
+          <div class="nm">Joinville — América <em>SC</em></div>
+          <div class="bar"><span data-w="44"></span></div></div><div class="vl">R$ 2.045</div></div>
+      </div>
+
+      <div class="split alert rise d9"><span class="t">Requerem atenção</span><span class="line"></span></div>
+      <div class="rows">
+        <div class="row dn rise d9"><div class="pos">1</div><div class="body">
+          <div class="nm">Juiz de Fora — Braz <em>MG</em></div>
+          <div class="bar"><span data-w="20"></span></div></div><div class="vl">R$ 55</div></div>
+        <div class="row dn rise d9"><div class="pos">2</div><div class="body">
+          <div class="nm">Lages — Centro <em>SC</em></div>
+          <div class="bar"><span data-w="26"></span></div></div><div class="vl">R$ 72</div></div>
+        <div class="row dn rise d9"><div class="pos">3</div><div class="body">
+          <div class="nm">Criciúma — Michel <em>SC</em></div>
+          <div class="bar"><span data-w="43"></span></div></div><div class="vl">R$ 118</div></div>
+        <div class="row dn rise d9"><div class="pos">4</div><div class="body">
+          <div class="nm">Cataguases — Vila Domingos Lopes <em>MG</em></div>
+          <div class="bar"><span data-w="52"></span></div></div><div class="vl">R$ 143</div></div>
+        <div class="row dn rise d9"><div class="pos">5</div><div class="body">
+          <div class="nm">Balneário Camboriú — Centro <em>SC</em></div>
+          <div class="bar"><span data-w="61"></span></div></div><div class="vl">R$ 168</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot rise d9">
+    <span>Atualizado há 2 min</span>
+    <span>Rede · 58 unidades ativas</span>
+    <span>Próxima leitura em 5 min</span>
+  </footer>
+</div>
+</div>
+
+<script>
+// ---- Escala o canvas 1080×1920 para a viewport (mesma técnica do app) ----
+function fit(){
+  const c=document.getElementById('canvas');
+  const s=Math.min(innerWidth/1080, innerHeight/1920)*0.97;
+  c.style.transform='scale('+s+')';
+}
+addEventListener('resize',fit); fit();
+
+// ---- Relógio ----
+function tick(){
+  const d=new Date();
+  document.getElementById('clock').textContent=
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick,1000);
+
+// ---- Contagem do número herói ----
+const alvo=33414;
+const el=document.getElementById('hero');
+let t0=null;
+function count(ts){
+  if(!t0)t0=ts;
+  const p=Math.min((ts-t0)/1700,1);
+  const e=1-Math.pow(1-p,3);
+  el.textContent=Math.round(alvo*e).toLocaleString('pt-BR');
+  if(p<1)requestAnimationFrame(count);
+}
+setTimeout(()=>requestAnimationFrame(count),350);
+
+// ---- Barra de ritmo: realizado 47%, projetado 86% (média = 78% da escala) ----
+setTimeout(()=>{
+  document.getElementById('fr').style.width='37%';
+  document.getElementById('fp').style.width='67%';
+},120);
+
+// ---- Losangos de cobertura da rede ----
+const pips=document.getElementById('pips');
+for(let i=0;i<58;i++){
+  const b=document.createElement('i');
+  if(i>=47)b.className='off';
+  pips.appendChild(b);
+}
+
+// ---- Barras do leaderboard ----
+setTimeout(()=>{
+  document.querySelectorAll('.bar span').forEach((s,i)=>{
+    setTimeout(()=>{s.style.width=s.dataset.w+'%'},i*70);
+  });
+},700);
+</script>
+</body>
+</html>
