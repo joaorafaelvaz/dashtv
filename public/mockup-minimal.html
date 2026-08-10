@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Barbearia VIP — Painel Minimalista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   BARBEARIA VIP — PAINEL MINIMALISTA
+   TV portrait 1080×1920 · ouro da marca #D9B437 (amostrado do logo)
+   ============================================================ */
+
+:root{
+  /* Neutros frios e precisos — sem marrom, sem textura */
+  --bg:        #0A0A0B;
+  --surface:   #101013;
+  --surface-2: #16161A;
+  --line:      rgba(255,255,255,.07);
+  --line-2:    rgba(255,255,255,.13);
+
+  --fg:        #FAFAFA;
+  --fg-2:      #9A9AA2;
+  --fg-3:      #5E5E66;
+
+  /* Ouro da marca, amostrado do logo */
+  --gold:      #D9B437;
+  --gold-lt:   #E9CC6B;
+  --gold-05:   rgba(217,180,55,.06);
+  --gold-20:   rgba(217,180,55,.20);
+
+  /* Semântica em DUAS cores apenas: âmbar é território da marca */
+  --pos:       #4EC77F;
+  --neg:       #F0584A;
+
+  --sans:'Archivo',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#050506;overflow:hidden}
+
+.stage{position:fixed;inset:0;display:grid;place-items:center;background:#050506}
+
+.canvas{
+  position:relative;width:1080px;height:1920px;overflow:hidden;transform-origin:center center;
+  background:var(--bg);color:var(--fg);
+  font-family:var(--sans);
+  font-variant-numeric:tabular-nums lining-nums;
+  display:flex;flex-direction:column;
+  box-shadow:0 0 0 1px rgba(255,255,255,.06);
+}
+
+/* ---------- primitivas ---------- */
+.k{ /* rótulo */
+  font-size:14px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);
+}
+.n{font-weight:700;letter-spacing:-.035em;line-height:.92}
+.hair{height:1px;background:var(--line)}
+
+/* =====================  CABEÇALHO  ===================== */
+.top{
+  padding:44px 60px 28px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;flex:none;
+}
+.top .left{display:flex;align-items:baseline;gap:14px}
+.clock{font-size:34px;font-weight:600;letter-spacing:-.02em;color:var(--fg)}
+.date{font-size:15px;font-weight:500;color:var(--fg-3);letter-spacing:.02em}
+.brandbox{display:flex;flex-direction:column;align-items:center;gap:9px}
+.brand{
+  font-size:23px;font-weight:700;letter-spacing:.30em;color:var(--gold);text-transform:uppercase;
+}
+.brand-sub{font-size:12px;font-weight:500;letter-spacing:.22em;color:var(--fg-3);text-transform:uppercase}
+.right{display:flex;justify-content:flex-end}
+.pill{
+  display:flex;align-items:center;gap:9px;padding:8px 15px;border-radius:999px;
+  background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);
+  font-size:12px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--fg-2);
+}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--pos);animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* =====================  ATO I — O DIA  ===================== */
+.day{padding:26px 60px 34px;flex:none}
+.day-row{display:grid;grid-template-columns:1fr 264px;gap:56px;align-items:end}
+
+.hero .k{margin-bottom:16px}
+.hero-val{display:flex;align-items:baseline;gap:10px}
+.hero-val .cur{font-size:38px;font-weight:600;color:var(--gold);letter-spacing:-.02em}
+.hero-val .big{font-size:132px;font-weight:700;letter-spacing:-.045em;line-height:.88;color:var(--fg)}
+.hero-val .cents{font-size:44px;font-weight:600;color:var(--fg-3);letter-spacing:-.02em}
+
+.aside{display:flex;flex-direction:column;gap:0}
+.aside .item{padding:15px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline}
+.aside .item:first-child{border-top:0;padding-top:0}
+.aside .t{font-size:13px;font-weight:500;letter-spacing:.10em;text-transform:uppercase;color:var(--fg-3)}
+.aside .v{font-size:26px;font-weight:600;letter-spacing:-.025em;color:var(--fg)}
+
+/* --- ritmo: barra fina, sem julgamento --- */
+.pace{margin-top:40px}
+.pace-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
+.pace-top .q{font-size:17px;font-weight:500;color:var(--fg-2)}
+.pace-top .q b{color:var(--gold);font-weight:700}
+.bar{position:relative;height:8px;border-radius:999px;background:var(--surface-2);overflow:visible}
+.bar .proj{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:999px;background:var(--gold-20);
+  transition:width 1.5s cubic-bezier(.22,.68,.2,1) .45s}
+.bar .real{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:999px;background:var(--gold);
+  transition:width 1.7s cubic-bezier(.22,.68,.2,1) .3s}
+.bar .tick{position:absolute;top:-7px;bottom:-7px;width:2px;border-radius:2px;background:var(--fg-2);opacity:.65}
+.pace-legend{display:flex;gap:28px;margin-top:18px}
+.lg{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;color:var(--fg-3)}
+.lg i{width:14px;height:4px;border-radius:2px}
+.lg .a{background:var(--gold)} .lg .b{background:var(--gold-20)} .lg .c{background:var(--fg-2);width:2px;height:12px;opacity:.65}
+
+/* =====================  SEÇÕES  ===================== */
+.sec{padding:0 60px;flex:none}
+.sec-t{display:flex;align-items:center;gap:16px;margin-bottom:26px}
+.sec-t .k{color:var(--fg-2)}
+.sec-t .l{flex:1;height:1px;background:var(--line)}
+
+/* --- funil --- */
+.funnel{display:grid;grid-template-columns:1fr 40px 1fr 40px 1fr;align-items:center;margin-bottom:30px}
+.st{text-align:center}
+.st .k{font-size:13px}
+.st .v{font-size:62px;font-weight:700;letter-spacing:-.04em;margin-top:12px;line-height:1}
+.st .s{font-size:13px;font-weight:500;color:var(--fg-3);margin-top:11px;letter-spacing:.01em}
+.arrow{text-align:center;color:var(--fg-3);font-size:22px;font-weight:400}
+
+/* --- vitais: superfície única, divididas por fio --- */
+.vitals{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-radius:14px;overflow:hidden}
+.vi{padding:24px 18px;text-align:center;box-shadow:inset 1px 0 0 var(--line)}
+.vi:first-child{box-shadow:none}
+.vi .k{font-size:12px}
+.vi .v{font-size:40px;font-weight:700;letter-spacing:-.035em;margin-top:12px;line-height:1}
+.vi .v .u{font-size:20px;font-weight:600;color:var(--fg-3);margin-left:1px}
+.is-pos{color:var(--pos)} .is-neg{color:var(--neg)} .is-neutral{color:var(--fg)}
+
+/* --- cobertura da rede --- */
+.cover{margin-top:22px;background:var(--surface);border-radius:14px;padding:24px 26px;
+  display:grid;grid-template-columns:auto 1fr auto;gap:30px;align-items:center}
+.cover .big{font-size:38px;font-weight:700;letter-spacing:-.035em;line-height:1;margin-top:9px}
+.cover .big s{text-decoration:none;color:var(--fg-3);font-size:22px;font-weight:600}
+.dots{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.dots i{width:11px;height:11px;border-radius:50%;background:var(--gold)}
+.dots i.off{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.14)}
+.cover .end{text-align:right}
+
+/* --- barbeiros --- */
+.barbers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.bb{background:var(--surface);border-radius:14px;padding:22px 22px 20px;position:relative}
+.bb.first{background:linear-gradient(180deg,var(--gold-05),transparent),var(--surface);
+  box-shadow:inset 0 0 0 1px var(--gold-20)}
+.bb .rk{font-size:13px;font-weight:700;letter-spacing:.10em;color:var(--fg-3)}
+.bb.first .rk{color:var(--gold)}
+.bb .nm{font-size:20px;font-weight:600;letter-spacing:-.015em;margin-top:14px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb .un{font-size:13px;font-weight:500;color:var(--fg-3);margin-top:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* .meta e não .foot: .foot é o rodapé da página e vazaria margem/caixa-alta aqui */
+.bb .meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:18px;
+  padding-top:14px;border-top:1px solid var(--line)}
+.bb .vl{font-size:26px;font-weight:700;letter-spacing:-.03em;color:var(--gold)}
+.bb .sv{font-size:13px;font-weight:500;color:var(--fg-3)}
+
+/* --- ranking --- */
+.board{flex:1;min-height:0;padding:0 60px 0;display:flex;flex-direction:column;gap:26px}
+.rows{display:flex;flex-direction:column;gap:15px}
+.r{display:grid;grid-template-columns:24px 1fr 132px;align-items:center;gap:16px}
+.r .p{font-size:15px;font-weight:600;color:var(--fg-3);text-align:right}
+.r .nm{font-size:17px;font-weight:500;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:9px;align-items:baseline}
+.r .nm em{font-style:normal;font-size:12px;font-weight:600;color:var(--fg-3);letter-spacing:.08em}
+.r .tr{height:5px;border-radius:999px;background:var(--surface-2);margin-top:9px;overflow:hidden}
+.r .tr span{display:block;height:100%;width:0;border-radius:999px;
+  transition:width 1.3s cubic-bezier(.22,.68,.2,1)}
+.r.up .tr span{background:var(--gold)}
+.r.dn .tr span{background:var(--neg)}
+.r .vl{font-size:20px;font-weight:600;letter-spacing:-.025em;text-align:right}
+.r.dn .vl{color:var(--neg)}
+
+/* =====================  RODAPÉ  ===================== */
+.foot{
+  flex:none;margin:0 60px;padding:20px 0 30px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;font-weight:500;letter-spacing:.08em;color:var(--fg-3);text-transform:uppercase;
+}
+
+/* ---------- entrada ---------- */
+.rise{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.22,.68,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.d1{animation-delay:.04s}.d2{animation-delay:.10s}.d3{animation-delay:.16s}
+.d4{animation-delay:.22s}.d5{animation-delay:.28s}.d6{animation-delay:.34s}
+.d7{animation-delay:.40s}.d8{animation-delay:.46s}.d9{animation-delay:.52s}
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="canvas" id="canvas">
+
+  <!-- ══════ CABEÇALHO ══════ -->
+  <header class="top rise d1">
+    <div class="left">
+      <span class="clock" id="clock">15:42</span>
+      <span class="date">Segunda, 10 ago</span>
+    </div>
+    <div class="brandbox">
+      <div class="brand">Barbearia VIP</div>
+      <div class="brand-sub">Dashboard Franqueadora</div>
+    </div>
+    <div class="right"><div class="pill"><span class="dot"></span>Ao vivo</div></div>
+  </header>
+
+  <!-- ══════ ATO I — O DIA ══════ -->
+  <section class="day">
+    <div class="day-row">
+      <div class="hero rise d2">
+        <div class="k">Faturamento do dia</div>
+        <div class="hero-val">
+          <span class="cur">R$</span>
+          <span class="big" id="hero">0</span>
+          <span class="cents">,35</span>
+        </div>
+      </div>
+      <div class="aside rise d3">
+        <div class="item"><span class="t">Projeção</span><span class="v">60.727</span></div>
+        <div class="item"><span class="t">Média seg.</span><span class="v">70.624</span></div>
+        <div class="item"><span class="t">Ticket</span><span class="v">72,94</span></div>
+      </div>
+    </div>
+
+    <div class="pace rise d4">
+      <div class="pace-top">
+        <span class="k">Ritmo do dia</span>
+        <span class="q">projeção alcança <b>86%</b> da média</span>
+      </div>
+      <div class="bar">
+        <div class="proj" id="proj"></div>
+        <div class="real" id="real"></div>
+        <div class="tick" style="left:78%"></div>
+      </div>
+      <div class="pace-legend">
+        <span class="lg"><i class="a"></i>Realizado</span>
+        <span class="lg"><i class="b"></i>Projetado</span>
+        <span class="lg"><i class="c"></i>Média do dia</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ ATO II — O PULSO ══════ -->
+  <section class="sec" style="margin-bottom:26px">
+    <div class="sec-t rise d5"><span class="k">O pulso</span><span class="l"></span></div>
+
+    <div class="funnel rise d5">
+      <div class="st">
+        <div class="k">Agendados</div>
+        <div class="v">918</div>
+        <div class="s">2.181 slots livres</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="st">
+        <div class="k">Em atendimento</div>
+        <div class="v" style="color:var(--gold)">40</div>
+        <div class="s">agora nas cadeiras</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="st">
+        <div class="k">Atendimentos</div>
+        <div class="v">512</div>
+        <div class="s">458 via agenda · 54 walk-in</div>
+      </div>
+    </div>
+
+    <div class="vitals rise d6">
+      <div class="vi"><div class="k">Ocupação</div><div class="v is-neg">30<span class="u">%</span></div></div>
+      <div class="vi"><div class="k">No-show</div><div class="v is-neutral">8,2<span class="u">%</span></div></div>
+      <div class="vi"><div class="k">Cancelamento</div><div class="v is-pos">4,1<span class="u">%</span></div></div>
+      <div class="vi"><div class="k">Walk-in</div><div class="v is-neutral">54</div></div>
+    </div>
+
+    <div class="cover rise d6">
+      <div>
+        <div class="k">Unidades faturando</div>
+        <div class="big">47<s> / 58</s></div>
+      </div>
+      <div class="dots" id="dots"></div>
+      <div class="end">
+        <div class="k">Sem venda</div>
+        <div class="big is-neg" style="color:var(--neg)">11</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ ATO III — A REDE ══════ -->
+  <section class="sec" style="margin-bottom:24px">
+    <div class="sec-t rise d7"><span class="k">Destaques do dia</span><span class="l"></span></div>
+    <div class="barbers rise d7">
+      <div class="bb first">
+        <div class="rk">01</div>
+        <div class="nm">Luiz Martini</div>
+        <div class="un">SC · Florianópolis — Santa Mônica</div>
+        <div class="meta"><span class="vl">R$ 946</span><span class="sv">15 serv.</span></div>
+      </div>
+      <div class="bb">
+        <div class="rk">02</div>
+        <div class="nm">Nico Correa</div>
+        <div class="un">MG · Barbacena — Centro</div>
+        <div class="meta"><span class="vl">R$ 734</span><span class="sv">15 serv.</span></div>
+      </div>
+      <div class="bb">
+        <div class="rk">03</div>
+        <div class="nm">Pedrinho</div>
+        <div class="un">SC · Florianópolis — Coqueiros</div>
+        <div class="meta"><span class="vl">R$ 660</span><span class="sv">12 serv.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div>
+      <div class="sec-t rise d8"><span class="k">Maiores faturamentos</span><span class="l"></span></div>
+      <div class="rows">
+        <div class="r up rise d8"><div class="p">1</div><div>
+          <div class="nm">Florianópolis — Santa Mônica <em>SC</em></div>
+          <div class="tr"><span data-w="100"></span></div></div><div class="vl">R$ 4.641</div></div>
+        <div class="r up rise d8"><div class="p">2</div><div>
+          <div class="nm">Itajaí — Centro <em>SC</em></div>
+          <div class="tr"><span data-w="71"></span></div></div><div class="vl">R$ 3.290</div></div>
+        <div class="r up rise d8"><div class="p">3</div><div>
+          <div class="nm">Ponte Nova — Guarapiranga <em>MG</em></div>
+          <div class="tr"><span data-w="61"></span></div></div><div class="vl">R$ 2.810</div></div>
+        <div class="r up rise d9"><div class="p">4</div><div>
+          <div class="nm">Curitiba — Água Verde <em>PR</em></div>
+          <div class="tr"><span data-w="52"></span></div></div><div class="vl">R$ 2.411</div></div>
+        <div class="r up rise d9"><div class="p">5</div><div>
+          <div class="nm">Joinville — América <em>SC</em></div>
+          <div class="tr"><span data-w="44"></span></div></div><div class="vl">R$ 2.045</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-t rise d9"><span class="k" style="color:var(--neg)">Requerem atenção</span><span class="l"></span></div>
+      <div class="rows">
+        <div class="r dn rise d9"><div class="p">1</div><div>
+          <div class="nm">Juiz de Fora — Braz <em>MG</em></div>
+          <div class="tr"><span data-w="20"></span></div></div><div class="vl">R$ 55</div></div>
+        <div class="r dn rise d9"><div class="p">2</div><div>
+          <div class="nm">Lages — Centro <em>SC</em></div>
+          <div class="tr"><span data-w="26"></span></div></div><div class="vl">R$ 72</div></div>
+        <div class="r dn rise d9"><div class="p">3</div><div>
+          <div class="nm">Criciúma — Michel <em>SC</em></div>
+          <div class="tr"><span data-w="43"></span></div></div><div class="vl">R$ 118</div></div>
+        <div class="r dn rise d9"><div class="p">4</div><div>
+          <div class="nm">Cataguases — Vila Domingos Lopes <em>MG</em></div>
+          <div class="tr"><span data-w="52"></span></div></div><div class="vl">R$ 143</div></div>
+        <div class="r dn rise d9"><div class="p">5</div><div>
+          <div class="nm">Balneário Camboriú — Centro <em>SC</em></div>
+          <div class="tr"><span data-w="61"></span></div></div><div class="vl">R$ 168</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot rise d9">
+    <span>Atualizado há 2 min</span>
+    <span>58 unidades ativas</span>
+    <span>Próxima leitura em 5 min</span>
+  </footer>
+</div>
+</div>
+
+<script>
+function fit(){
+  const c=document.getElementById('canvas');
+  c.style.transform='scale('+Math.min(innerWidth/1080,innerHeight/1920)*0.97+')';
+}
+addEventListener('resize',fit); fit();
+
+function tick(){
+  const d=new Date();
+  document.getElementById('clock').textContent=
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick,1000);
+
+// contagem do número principal
+const alvo=33414, el=document.getElementById('hero');
+let t0=null;
+function count(ts){
+  if(!t0)t0=ts;
+  const p=Math.min((ts-t0)/1500,1), e=1-Math.pow(1-p,3);
+  el.textContent=Math.round(alvo*e).toLocaleString('pt-BR');
+  if(p<1)requestAnimationFrame(count);
+}
+setTimeout(()=>requestAnimationFrame(count),260);
+
+setTimeout(()=>{
+  document.getElementById('real').style.width='37%';
+  document.getElementById('proj').style.width='67%';
+},100);
+
+const dots=document.getElementById('dots');
+for(let i=0;i<58;i++){
+  const b=document.createElement('i');
+  if(i>=47)b.className='off';
+  dots.appendChild(b);
+}
+
+setTimeout(()=>{
+  document.querySelectorAll('.tr span').forEach((s,i)=>{
+    setTimeout(()=>s.style.width=s.dataset.w+'%', i*60);
+  });
+},600);
+</script>
+</body>
+</html>
