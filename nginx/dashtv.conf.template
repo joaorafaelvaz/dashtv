@@ -4,6 +4,7 @@
 # INSTRUÇÕES DE USO:
 # 1. Copiar para /etc/nginx/sites-available/dashtv.conf
 # 2. Substituir TOKEN_PLACEHOLDER pelo token real (openssl rand -hex 16)
+#    e AGENDA62_TOKEN_PLACEHOLDER por um segundo token, só da agenda da unidade 62
 # 3. Criar symlink: ln -s /etc/nginx/sites-available/dashtv.conf /etc/nginx/sites-enabled/
 # 4. Validar e ativar: nginx -t && nginx -s reload
 # 5. Emitir certificado: certbot --nginx -d dashboard.franquiabv.xyz
@@ -17,6 +18,16 @@
 map $arg_token $auth_ok {
     default              0;
     "TOKEN_PLACEHOLDER"  1;
+}
+
+# Token exclusivo da agenda da unidade 62 (TV da própria unidade).
+# Abre SÓ /62/agenda e a API dela — não abre o dashboard da rede nem a agenda
+# de outras unidades. O token do dashboard também abre a agenda (acesso admin).
+# Substituir AGENDA62_TOKEN_PLACEHOLDER por outro token (openssl rand -hex 16).
+map $arg_token $agenda62_ok {
+    default                       0;
+    "AGENDA62_TOKEN_PLACEHOLDER"  1;
+    "TOKEN_PLACEHOLDER"           1;
 }
 
 # Redirect HTTP → HTTPS (Certbot preenche este bloco)
@@ -56,6 +67,24 @@ server {
         proxy_set_header Host $host;
         expires 30d;
         add_header Cache-Control "public";
+    }
+
+    # Agenda da unidade 62 (página + API) — aceita o token próprio da agenda ou o
+    # do dashboard. Por ser regex, tem precedência sobre "location /": o token da
+    # agenda não serve em nenhuma outra rota.
+    location ~ ^/(62/agenda|api/agenda/62)/?$ {
+        if ($agenda62_ok = 0) {
+            return 403;
+        }
+
+        proxy_pass http://127.0.0.1:3031;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_connect_timeout 10s;
     }
 
     # Dashboard e API — token obrigatório
