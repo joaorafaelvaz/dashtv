@@ -47,6 +47,13 @@ mkdir -p "$APP_DIR/data"
 
 # --- Nginx (opcional) ---
 if [ "$UPDATE_NGINX" = true ]; then
+  # Em produção o conf é gerado por scripts/setup-producao.sh; copiar o template
+  # de teste por cima trocaria o domínio e apagaria os tokens.
+  if grep -q "franquiabv.com.br" "$NGINX_CONF" 2>/dev/null; then
+    echo "ABORTADO: $NGINX_CONF é o conf de produção."
+    echo "  Para regerar, use: bash scripts/setup-producao.sh --email <email> --force"
+    exit 1
+  fi
   echo ""
   echo "==> [Nginx] Atualizando server block..."
   cp "$APP_DIR/nginx/dashtv.conf.template" "$NGINX_CONF"
