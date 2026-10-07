@@ -1,0 +1,122 @@
+# Dashboard TV — Barbearia VIP · PRODUÇÃO (dashboard.franquiabv.com.br)
+#
+# Instalado por scripts/setup-producao.sh, que gera os tokens e emite o
+# certificado — não copiar à mão. Roteiro completo: docs/deploy-producao.md
+#
+# Diferenças para o template de teste (dashtv.conf.template):
+#   - domínio dashboard.franquiabv.com.br
+#   - certificado via webroot (certbot certonly): o certbot não edita este arquivo
+#   - variáveis com prefixo dashtv_, para não colidir com outros sites do servidor
+#
+# A cópia em /etc/nginx contém os tokens reais: nunca commitar.
+
+# Token do dashboard da rede
+map $arg_token $dashtv_auth_ok {
+    default                0;
+    "TOKEN_PLACEHOLDER"    1;
+}
+
+# Agenda por unidade: cada TV tem um token que abre SÓ a agenda da própria
+# unidade (/N/agenda e /api/agenda/N). O token do dashboard não abre agenda, e o
+# token de uma unidade não abre a de outra.
+#
+# 1º map: extrai o número da unidade da URL ("" fora das rotas de agenda).
+map $uri $dashtv_agenda_unidade {
+    default                       "";
+    ~^/(?<u>\d+)/agenda/?$        $u;
+    ~^/api/agenda/(?<u>\d+)/?$    $u;
+}
+
+# 2º map: par "unidade:token" liberado. O setup gera um token para cada linha.
+# Para incluir uma unidade depois: adicionar uma linha com um token aleatório
+# (openssl rand -hex 16) e rodar nginx -t && nginx -s reload.
+map "$dashtv_agenda_unidade:$arg_token" $dashtv_agenda_ok {
+    default                            0;
+    "62:AGENDA62_TOKEN_PLACEHOLDER"    1;
+    "1:AGENDA1_TOKEN_PLACEHOLDER"      1;
+    "39:AGENDA39_TOKEN_PLACEHOLDER"    1;
+    "10:AGENDA10_TOKEN_PLACEHOLDER"    1;
+}
+
+# HTTP: só o desafio do Let's Encrypt (emissão e renovação); o resto vai para HTTPS
+server {
+    listen 80;
+    server_name dashboard.franquiabv.com.br;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name dashboard.franquiabv.com.br;
+
+    ssl_certificate     /etc/letsencrypt/live/dashboard.franquiabv.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dashboard.franquiabv.com.br/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_session_cache   shared:dashtv_ssl:10m;
+    ssl_session_timeout 1d;
+
+    access_log /var/log/nginx/dashtv-access.log combined;
+    error_log  /var/log/nginx/dashtv-error.log warn;
+
+    # Assets do Next.js — sem token; nomes com hash de conteúdo, cache imutável
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3031;
+        proxy_set_header Host $host;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Arquivos da pasta public/ (imagens, fontes, ícones) — sem token
+    location ~* \.(png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|otf)$ {
+        proxy_pass http://127.0.0.1:3031;
+        proxy_set_header Host $host;
+        expires 30d;
+        add_header Cache-Control "public";
+    }
+
+    # Agenda de qualquer unidade (página + API) — só o token da própria unidade.
+    # Por ser regex, tem precedência sobre "location /".
+    location ~ ^/(\d+/agenda|api/agenda/\d+)/?$ {
+        if ($dashtv_agenda_ok = 0) {
+            return 403;
+        }
+
+        proxy_pass http://127.0.0.1:3031;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_connect_timeout 10s;
+    }
+
+    # Dashboard da rede e API — token do dashboard.
+    # Resposta 403 sem corpo: não revela que existe autenticação por token.
+    location / {
+        if ($dashtv_auth_ok = 0) {
+            return 403;
+        }
+
+        proxy_pass http://127.0.0.1:3031;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        # As queries do dashboard podem levar alguns segundos
+        proxy_read_timeout 30s;
+        proxy_connect_timeout 10s;
+    }
+}
