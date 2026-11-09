@@ -15,9 +15,17 @@ import {
   getTopBarbeiros,
   getAtendimentosRealizados,
   getWalkIns,
+  getVendasHoje,
+  getItensVendas,
 } from '@/lib/db/queries'
 import { calcularSlotsLivres, calcularVariacaoPct } from '@/lib/utils/dashboard'
-import type { DashboardData } from '@/lib/types/dashboard'
+import {
+  detectarNovas,
+  montarVendaNova,
+  podarAntigas,
+  MAX_NOTIFICACOES_POR_REFRESH,
+} from '@/lib/utils/vendas'
+import type { DashboardData, VendaNova } from '@/lib/types/dashboard'
 
 const CACHE_FILE = path.join(process.cwd(), 'data', 'dashboard-cache.json')
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutos
@@ -25,12 +33,45 @@ const REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutos
 interface CacheEntry {
   data: DashboardData
   refreshed_at: string
+  /** Ids das vendas de hoje no último refresh — base para detectar as novas */
+  venda_ids?: number[]
 }
 
 let memoryCache: CacheEntry | null = null
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 /** Refresh em andamento. Requisições concorrentes aguardam este mesmo promise. */
 let refreshPromise: Promise<void> | null = null
+
+/** Idade máxima do refresh anterior para servir de referência às vendas novas */
+const MAX_IDADE_REFERENCIA_MS = 3 * REFRESH_INTERVAL_MS
+
+/**
+ * Vendas que apareceram desde o refresh anterior, somadas às ainda dentro da
+ * janela de retenção. Devolve também os ids atuais, para o próximo refresh.
+ */
+async function detectarVendasNovas(
+  anterior: CacheEntry | null,
+  agoraIso: string,
+): Promise<{ vendasNovas: VendaNova[]; vendaIds: number[] }> {
+  const atuais = await getVendasHoje()
+  const vendaIds = atuais.map((v) => v.id)
+
+  // Refresh anterior antigo demais (processo parado, cache do disco de ontem):
+  // não dá para saber o que é "novo" — melhor não notificar do que despejar
+  // o dia inteiro na tela.
+  const recente =
+    anterior?.venda_ids &&
+    Date.parse(agoraIso) - Date.parse(anterior.refreshed_at) <= MAX_IDADE_REFERENCIA_MS
+  const idsAnteriores = recente ? new Set(anterior!.venda_ids) : null
+  // Excedente (ex.: volta de uma queda) entra no total sem notificação
+  const novas = detectarNovas(atuais, idsAnteriores).slice(-MAX_NOTIFICACOES_POR_REFRESH)
+
+  const itens = await getItensVendas(novas.map((v) => v.id))
+  const detectadas = novas.map((v) => montarVendaNova(v, itens, agoraIso))
+
+  const retidas = podarAntigas(anterior?.data.vendas_novas ?? [], Date.parse(agoraIso))
+  return { vendasNovas: [...retidas, ...detectadas], vendaIds }
+}
 
 async function fetchDashboardData(): Promise<DashboardData> {
   const [
@@ -101,6 +142,7 @@ async function fetchDashboardData(): Promise<DashboardData> {
     top_barbeiros: topBarbeiros,
     ranking,
     ultima_atualizacao: new Date().toISOString(),
+    vendas_novas: [],
   }
 }
 
@@ -156,7 +198,21 @@ async function refresh(): Promise<void> {
   refreshPromise = (async () => {
     try {
       const data = await fetchDashboardData()
-      const entry: CacheEntry = { data, refreshed_at: data.ultima_atualizacao }
+      let vendaIds: number[] | undefined
+      try {
+        const r = await detectarVendasNovas(memoryCache, data.ultima_atualizacao)
+        data.vendas_novas = r.vendasNovas
+        vendaIds = r.vendaIds
+      } catch (err) {
+        // Notificação é acessório: falhar aqui não pode derrubar o painel
+        console.error('[cache] Falha ao detectar vendas novas:', err)
+        vendaIds = memoryCache?.venda_ids
+      }
+      const entry: CacheEntry = {
+        data,
+        refreshed_at: data.ultima_atualizacao,
+        venda_ids: vendaIds,
+      }
       memoryCache = entry
       saveToDisk(entry)
       console.log('[cache] Atualizado em', entry.refreshed_at)
