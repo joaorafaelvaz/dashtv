@@ -420,3 +420,58 @@ export async function getRankingUnidades(): Promise<RankingUnidade[]> {
   )
   return rows
 }
+
+interface VendaHojeRow extends RowDataPacket {
+  id: number
+  valor: number
+  unidade_id: number
+  unidade_nome: string | null
+}
+
+/**
+ * Todas as vendas válidas de hoje (só id, valor e unidade). Base para detectar,
+ * a cada refresh, quais vendas são novas — por id, e não por horário, porque
+ * `data_criacao` é a abertura da comanda: uma comanda aberta às 9h e fechada
+ * às 10h30 só aparece às 10h30, com horário de 9h.
+ */
+export async function getVendasHoje(): Promise<VendaHojeRow[]> {
+  const [rows] = await pool.execute<VendaHojeRow[]>(
+    `SELECT v.id, v.valor_total AS valor, un.id AS unidade_id, un.nome AS unidade_nome
+     FROM vendas v
+     INNER JOIN usuarios u  ON v.usuario = u.id
+     INNER JOIN unidades un ON u.unidade = un.id
+     WHERE DATE(v.data_criacao) = CURDATE()
+       AND v.comanda_temp = 0
+       AND v.status = ?
+       AND un.status = 1`,
+    [VENDAS_STATUS_VALIDA],
+  )
+  return rows
+}
+
+export interface ItemVendaRow extends RowDataPacket {
+  venda: number
+  valor: number
+  produto: string | null
+  colaborador: string | null
+  unidade_colaborador: number | null
+}
+
+/** Itens das vendas informadas, com o executor e a unidade dele (base do ranking). */
+export async function getItensVendas(ids: number[]): Promise<ItemVendaRow[]> {
+  if (ids.length === 0) return []
+  const marcadores = ids.map(() => '?').join(',')
+  const [rows] = await pool.execute<ItemVendaRow[]>(
+    `SELECT vp.venda,
+            vp.valor_total AS valor,
+            p.nome         AS produto,
+            us.nome        AS colaborador,
+            us.unidade     AS unidade_colaborador
+     FROM vendas_produtos vp
+     LEFT JOIN produtos p  ON p.id = vp.produto
+     LEFT JOIN usuarios us ON us.id = vp.colaborador AND us.status = 1
+     WHERE vp.venda IN (${marcadores})`,
+    ids,
+  )
+  return rows
+}

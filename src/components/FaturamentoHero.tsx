@@ -1,5 +1,6 @@
 import { splitCurrency, formatCurrencyShort, formatCurrency } from '@/lib/utils/format'
 import { calcularRitmo } from '@/lib/utils/dashboard'
+import { useContagem } from '@/lib/hooks/useVendasAoVivo'
 
 interface Props {
   faturamento: number
@@ -14,7 +15,9 @@ export default function FaturamentoHero({
   faturamentoProjetado,
   atendimentos,
 }: Props) {
-  const { inteiro, centavos } = splitCurrency(faturamento)
+  // Sobe contando a cada venda anunciada
+  const faturamentoAnimado = useContagem(faturamento)
+  const { inteiro, centavos } = splitCurrency(faturamentoAnimado)
   const ticketMedio = atendimentos > 0 ? faturamento / atendimentos : 0
   const ritmo = calcularRitmo(faturamento, faturamentoProjetado, media3meses)
 

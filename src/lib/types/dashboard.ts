@@ -26,6 +26,23 @@ export interface TopBarbeiro extends RowDataPacket {
   unidade_bairro: string | null
 }
 
+/**
+ * Venda que apareceu num refresh do cache e ainda não existia no anterior.
+ * O painel mostra uma notificação para cada uma, espaçadas ao longo do
+ * intervalo até a próxima leitura, somando o valor aos totais aos poucos.
+ */
+export interface VendaNova {
+  id: number
+  valor: number                        // vendas.valor_total — entra no faturamento do dia
+  unidade_id: number | null            // unidade de quem lançou a venda
+  unidade_nome: string | null
+  barbeiro: string | null              // profissional do item de maior valor
+  itens: string[]                      // nomes dos produtos/serviços da comanda
+  /** Valor por unidade do executor (mesma base do ranking): { [unidade_id]: valor } */
+  por_unidade: Record<string, number>
+  detectada_em: string                 // ISO — refresh em que a venda apareceu
+}
+
 export interface DashboardData {
   faturamento_hoje: number
   agendamentos_dia: number
@@ -46,4 +63,6 @@ export interface DashboardData {
   top_barbeiros: TopBarbeiro[]   // top 3 por serviços realizados
   ranking: RankingUnidade[]      // todas as unidades, ordem DESC por faturamento_dia
   ultima_atualizacao: string     // ISO timestamp
+  /** Vendas novas dos últimos refreshes (janela curta; o cliente deduplica por id) */
+  vendas_novas: VendaNova[]
 }

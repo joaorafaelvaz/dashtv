@@ -1,8 +1,11 @@
-import { formatCurrency } from '@/lib/utils/format'
+import { formatCurrency, nomeUnidadeCurto } from '@/lib/utils/format'
+import { useContagem } from '@/lib/hooks/useVendasAoVivo'
 import type { RankingUnidade } from '@/lib/types/dashboard'
 
 interface Props {
   ranking: RankingUnidade[]
+  /** Unidades da venda sendo anunciada agora — a linha delas pisca em dourado */
+  destaque?: { vendaId: number; unidades: number[] } | null
 }
 
 interface RowProps {
@@ -10,18 +13,15 @@ interface RowProps {
   unidade: RankingUnidade
   maxFaturamento: number
   variant: 'top' | 'bottom'
+  flashKey?: number
 }
 
-/** Remove o prefixo "Brasil - ", constante em toda unidade e que só rouba espaço. */
 function nomeCurto(u: RankingUnidade): { local: string; uf: string } {
-  const bruto = u.nome ?? `${u.cidade} — ${u.bairro}`
-  const partes = bruto.split(' - ').filter((p) => p.trim() !== 'Brasil')
-  const uf = partes.length > 2 && partes[0].length === 2 ? partes[0] : ''
-  const local = (uf ? partes.slice(1) : partes).join(' — ')
-  return { local, uf }
+  return nomeUnidadeCurto(u.nome ?? `${u.cidade} - ${u.bairro}`)
 }
 
-function RankingRow({ pos, unidade, maxFaturamento, variant }: RowProps) {
+function RankingRow({ pos, unidade, maxFaturamento, variant, flashKey }: RowProps) {
+  const valor = useContagem(Number(unidade.faturamento_dia))
   const pct = maxFaturamento > 0
     ? Math.max(4, (unidade.faturamento_dia / maxFaturamento) * 100)
     : 4
@@ -29,7 +29,13 @@ function RankingRow({ pos, unidade, maxFaturamento, variant }: RowProps) {
   const { local, uf } = nomeCurto(unidade)
 
   return (
-    <div className="grid grid-cols-[24px_1fr_132px] items-center gap-4">
+    <div
+      // flashKey muda a cada venda: remonta só o brilho, não a linha
+      className="relative grid grid-cols-[24px_1fr_132px] items-center gap-4"
+    >
+      {flashKey !== undefined && (
+        <span key={flashKey} className="row-flash pointer-events-none absolute -inset-x-4 -inset-y-1.5 rounded-xl" />
+      )}
       <span className="text-[15px] font-semibold text-fg-dim text-right">{pos}</span>
 
       <div className="min-w-0">
@@ -56,13 +62,15 @@ function RankingRow({ pos, unidade, maxFaturamento, variant }: RowProps) {
           isTop ? 'text-fg' : 'text-neg'
         }`}
       >
-        {formatCurrency(unidade.faturamento_dia)}
+        {formatCurrency(valor)}
       </span>
     </div>
   )
 }
 
-export default function RankingSection({ ranking }: Props) {
+export default function RankingSection({ ranking, destaque }: Props) {
+  const flash = (id: number) =>
+    destaque && destaque.unidades.includes(id) ? destaque.vendaId : undefined
   const top5 = ranking.slice(0, 5)
   // Bottom 5: menores faturamentos com valor > 0 (unidades zeradas aparecem
   // na cobertura da rede, não aqui)
@@ -85,7 +93,14 @@ export default function RankingSection({ ranking }: Props) {
         </div>
         <div className="flex flex-col gap-3 rise" style={{ animationDelay: '0.46s' }}>
           {top5.map((u, i) => (
-            <RankingRow key={u.id} pos={i + 1} unidade={u} maxFaturamento={maxTop} variant="top" />
+            <RankingRow
+              key={u.id}
+              pos={i + 1}
+              unidade={u}
+              maxFaturamento={maxTop}
+              variant="top"
+              flashKey={flash(u.id)}
+            />
           ))}
         </div>
       </div>
@@ -105,6 +120,7 @@ export default function RankingSection({ ranking }: Props) {
               unidade={u}
               maxFaturamento={maxBottom}
               variant="bottom"
+              flashKey={flash(u.id)}
             />
           ))}
         </div>

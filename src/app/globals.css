@@ -37,7 +37,27 @@ body {
   animation: rise 0.7s cubic-bezier(0.22, 0.68, 0.2, 1) forwards;
 }
 
+/* Notificação de venda: entra descendo, sai subindo */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-28px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes toast-out {
+  to { opacity: 0; transform: translateY(-20px) scale(0.98); }
+}
+.toast-in  { animation: toast-in 0.55s cubic-bezier(0.22, 0.68, 0.2, 1) both; }
+.toast-out { animation: toast-out 0.45s ease-in both; }
+
+/* Linha do ranking que acabou de receber uma venda */
+@keyframes row-flash {
+  0%   { background: rgba(217, 180, 55, 0); }
+  18%  { background: rgba(217, 180, 55, 0.16); }
+  100% { background: rgba(217, 180, 55, 0); }
+}
+.row-flash { animation: row-flash 2.4s ease-out both; }
+
 @media (prefers-reduced-motion: reduce) {
+  .toast-in, .toast-out, .row-flash { animation-duration: 0.01s; }
   .rise {
     opacity: 1;
     transform: none;

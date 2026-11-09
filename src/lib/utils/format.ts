@@ -32,3 +32,14 @@ export function splitCurrency(value: number): { inteiro: string; centavos: strin
 export function formatCurrencyShort(value: number): string {
   return Math.round(value).toLocaleString('pt-BR')
 }
+
+/**
+ * Nome da unidade sem o prefixo "Brasil - ", constante em toda unidade e que
+ * só rouba espaço. "Brasil - SC - Joinville - Centro" → { local: "Joinville — Centro", uf: "SC" }
+ */
+export function nomeUnidadeCurto(nome: string | null): { local: string; uf: string } {
+  const partes = (nome ?? '').split(' - ').map((p) => p.trim()).filter((p) => p && p !== 'Brasil')
+  const uf = partes.length > 2 && partes[0].length === 2 ? partes[0] : ''
+  const local = (uf ? partes.slice(1) : partes).join(' — ')
+  return { local, uf }
+}

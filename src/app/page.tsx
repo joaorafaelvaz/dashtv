@@ -8,6 +8,8 @@ import PulseSection from '@/components/PulseSection'
 import RankingSection from '@/components/RankingSection'
 import StatusBar from '@/components/StatusBar'
 import TopBarbeiros from '@/components/TopBarbeiros'
+import NotificacaoVenda from '@/components/NotificacaoVenda'
+import { useVendasAoVivo } from '@/lib/hooks/useVendasAoVivo'
 
 /** Intervalo de atualização em milissegundos (5 minutos) */
 const REFRESH_MS = 5 * 60 * 1000
@@ -16,10 +18,17 @@ const REFRESH_MS = 5 * 60 * 1000
 const CANVAS_W = 1080
 const CANVAS_H = 1920
 
+/**
+ * As vendas novas de cada leitura são anunciadas ao longo de 95% do intervalo
+ * até a próxima, para a fila esvaziar antes de chegar a leitura seguinte.
+ */
+const JANELA_VENDAS_MS = REFRESH_MS * 0.95
+
 export default function DashboardTV() {
-  const [data, setData] = useState<DashboardData | null>(null)
+  const { exibido: data, notificacao, receber } = useVendasAoVivo(JANELA_VENDAS_MS)
   const [hasError, setHasError] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
+  const temDados = data !== null
 
   // ---------- Escalonamento do canvas para a TV ----------
   useEffect(() => {
@@ -38,7 +47,7 @@ export default function DashboardTV() {
     // Depende de `data`: no primeiro render o canvas ainda não está no DOM
     // (a tela é a de carregamento), então canvasRef.current é null e a escala
     // nunca era aplicada. Passava despercebido na TV, onde a escala é 1.
-  }, [data])
+  }, [temDados])
 
   // ---------- Busca de dados ----------
   const fetchData = useCallback(async () => {
@@ -51,13 +60,13 @@ export default function DashboardTV() {
       const res = await fetch(apiUrl, { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json: DashboardData = await res.json()
-      setData(json)
+      receber(json)
       setHasError(false)
     } catch (err) {
       console.error('[DashboardTV] Erro ao buscar dados:', err)
       setHasError(true)
     }
-  }, [])
+  }, [receber])
 
   useEffect(() => {
     fetchData()
@@ -90,10 +99,11 @@ export default function DashboardTV() {
     <div className="w-screen h-screen bg-ink overflow-hidden">
       <div
         ref={canvasRef}
-        className="bg-ink flex flex-col overflow-hidden"
+        className="relative bg-ink flex flex-col overflow-hidden"
         style={{ width: CANVAS_W, height: CANVAS_H }}
       >
         <DashboardHeader />
+        <NotificacaoVenda notificacao={notificacao} />
 
         <FaturamentoHero
           faturamento={data.faturamento_hoje}
@@ -118,7 +128,15 @@ export default function DashboardTV() {
 
         <TopBarbeiros barbeiros={data.top_barbeiros} />
 
-        <RankingSection ranking={data.ranking} />
+        <RankingSection
+          ranking={data.ranking}
+          destaque={
+            notificacao && {
+              vendaId: notificacao.venda.id,
+              unidades: Object.keys(notificacao.venda.por_unidade).map(Number),
+            }
+          }
+        />
 
         <StatusBar
           ultimaAtualizacao={data.ultima_atualizacao}
