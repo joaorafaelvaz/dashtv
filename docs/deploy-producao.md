@@ -149,6 +149,26 @@ Não use `--update-nginx` em produção: ele aborta, porque copiaria o template 
 teste por cima do conf de produção. Para regerar o conf, use o
 `setup-producao.sh --force`.
 
+## Forçar atualização das TVs
+
+Sem build e sem reiniciar o app:
+
+```bash
+cd /var/www/dashtv && bash scripts/forcar-atualizacao.sh
+```
+
+O servidor refaz o cache na hora e as TVs (dashboard e agendas) recarregam a
+página sozinhas em até 1 minuto. Depois de um deploy isso já acontece sem
+precisar do script.
+
+Vale só para TVs que já carregaram uma versão com a recarga automática. Uma TV
+com a página antiga precisa de uma recarga manual, uma única vez — no Chromium
+do Linux, por SSH na máquina da TV:
+
+```bash
+DISPLAY=:0 xdotool key ctrl+shift+r   # ou reinicie o serviço/máquina do quiosque
+```
+
 ## Incluir uma unidade na agenda
 
 Em `/etc/nginx/sites-available/dashtv.conf`, no `map ... $dashtv_agenda_ok`,

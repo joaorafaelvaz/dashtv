@@ -5,19 +5,44 @@ import path from 'path'
 export const CABECALHO_VERSAO = 'X-Dashtv-Versao'
 
 /**
- * Identificador do build em execução (.next/BUILD_ID, gerado a cada
- * `next build`). Lido uma vez, na subida do processo: muda a cada deploy.
- * As TVs comparam com a versão que carregaram e recarregam a página sozinhas.
+ * Arquivo de sinal gravado por scripts/forcar-atualizacao.sh. Mudar o conteúdo
+ * dele faz o servidor refazer o cache na hora e as TVs recarregarem a página,
+ * sem precisar de build nem de restart.
  */
-export const VERSAO: string = (() => {
+const ARQUIVO_SINAL = path.join(process.cwd(), 'data', 'forcar-atualizacao')
+
+/** Build em execução (.next/BUILD_ID): muda a cada deploy. Vazio em dev. */
+const BUILD: string = (() => {
   try {
     return fs.readFileSync(path.join(process.cwd(), '.next', 'BUILD_ID'), 'utf-8').trim()
   } catch {
-    return '' // dev: sem build — as TVs não recarregam
+    return ''
   }
 })()
 
+/** Conteúdo atual do sinal de atualização forçada ('' se nunca foi usado). */
+export function lerSinal(): string {
+  try {
+    // Vai num cabeçalho HTTP: só letras, dígitos, ponto, hífen e sublinhado
+    return fs.readFileSync(ARQUIVO_SINAL, 'utf-8').replace(/[^A-Za-z0-9._-]/g, '').slice(0, 64)
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Versão que as TVs comparam: build + sinal. Muda num deploy ou num
+ * `forcar-atualizacao.sh`; nos dois casos a TV recarrega sozinha.
+ * Lida a cada requisição (arquivo minúsculo, poucas requisições por minuto).
+ */
+export function versaoAtual(): string {
+  if (!BUILD) return '' // dev: as TVs não recarregam
+  const sinal = lerSinal()
+  return sinal ? `${BUILD}-${sinal}` : BUILD
+}
+
 /** Cabeçalhos a incluir nas respostas das APIs */
 export function cabecalhosVersao(): Record<string, string> {
-  return VERSAO ? { [CABECALHO_VERSAO]: VERSAO } : {}
+  const v = versaoAtual()
+  return v ? { [CABECALHO_VERSAO]: v } : {}
 }
