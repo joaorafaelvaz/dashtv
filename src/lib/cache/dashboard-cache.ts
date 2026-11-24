@@ -37,6 +37,8 @@ interface CacheEntry {
   refreshed_at: string
   /** Ids das vendas de hoje no último refresh — base para detectar as novas */
   venda_ids?: number[]
+  /** Sinal de forcar-atualizacao.sh em vigor quando este cache foi montado */
+  sinal?: string
 }
 
 let memoryCache: CacheEntry | null = null
@@ -217,6 +219,8 @@ async function refresh(): Promise<void> {
 
   refreshPromise = (async () => {
     try {
+      // Lido antes das consultas: um sinal gravado durante o refresh força outro
+      const sinal = lerSinal()
       const data = await fetchDashboardData()
       let vendaIds: number[] | undefined
       try {
@@ -233,6 +237,7 @@ async function refresh(): Promise<void> {
         data,
         refreshed_at: data.ultima_atualizacao,
         venda_ids: vendaIds,
+        sinal,
       }
       memoryCache = entry
       saveToDisk(entry)
@@ -261,11 +266,16 @@ export async function getCachedDashboard(): Promise<CacheEntry> {
     memoryCache = loadFromDisk()
     if (memoryCache) {
       console.log('[cache] Cache restaurado do disco:', memoryCache.refreshed_at)
+      // O sinal que este cache já atendeu sobrevive ao restart: um
+      // forcar-atualizacao.sh rodado logo após um `pm2 reload` ainda vale.
+      if (sinalAtendido === null && memoryCache.sinal !== undefined) {
+        sinalAtendido = memoryCache.sinal
+      }
     }
   }
 
   // Sinal novo de forcar-atualizacao.sh: refaz o cache agora, sem esperar o
-  // intervalo. Na subida do processo só registra o sinal que já existia.
+  // intervalo. Sem referência (cache antigo, sem o campo) só registra o sinal.
   const sinal = lerSinal()
   const forcado = sinalAtendido !== null && sinal !== sinalAtendido
   sinalAtendido = sinal
