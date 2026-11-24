@@ -25,7 +25,8 @@ echo "==> Sinal gravado: $(cat "$SINAL")"
 
 echo "==> Refazendo o cache..."
 TMP=$(mktemp)
-HTTP_CODE=$(curl -s -o "$TMP" -w "%{http_code}" --max-time 60 "$API_URL" || true)
+# Logo após um `pm2 reload` o app ainda está subindo: insiste por ~30 s
+HTTP_CODE=$(curl -s -o "$TMP" -w "%{http_code}" --max-time 60 --retry 10 --retry-delay 3 --retry-connrefused "$API_URL" || true)
 if [ "$HTTP_CODE" != "200" ]; then
   rm -f "$TMP"
   echo "ERRO: a API respondeu HTTP ${HTTP_CODE:-000}. Veja: pm2 logs dashtv --lines 30"
