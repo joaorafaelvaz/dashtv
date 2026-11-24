@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
-import { formatNumber } from '@/lib/utils/format'
+import { formatNumber, formatCurrencyShort } from '@/lib/utils/format'
+import type { AgenteHoje } from '@/lib/types/dashboard'
 import { toneLowerIsBetter, toneHigherIsBetter, type KpiTone } from '@/lib/utils/dashboard'
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   taxaCancelamento: number
   unidadesFaturando: number
   unidadesTotal: number
+  agente: AgenteHoje | null
 }
 
 /**
@@ -50,6 +52,7 @@ export default function PulseSection({
   taxaCancelamento,
   unidadesFaturando,
   unidadesTotal,
+  agente,
 }: Props) {
   const semVenda = Math.max(0, unidadesTotal - unidadesFaturando)
 
@@ -129,45 +132,73 @@ export default function PulseSection({
         ))}
       </div>
 
-      {/* --- cobertura da rede: onde as unidades zeradas ficam visíveis --- */}
+      {/* --- rede + agente: dois cartões na mesma linha. O agente só aparece se
+          estiver configurado; sem ele, a cobertura ocupa a largura toda. --- */}
       <div
-        className="mt-[22px] grid grid-cols-[auto_1fr_auto] gap-[30px] items-center
-                   rounded-2xl bg-surface px-[26px] py-6 rise"
+        className={`mt-[22px] grid gap-[22px] rise ${agente ? 'grid-cols-2' : 'grid-cols-1'}`}
         style={{ animationDelay: '0.34s' }}
       >
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-fg-dim">
-            Unidades faturando
-          </p>
-          <p className="text-[38px] font-bold leading-none tracking-[-0.035em] mt-2.5">
-            {unidadesFaturando}
-            <span className="text-[22px] font-semibold text-fg-dim"> / {unidadesTotal}</span>
-          </p>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-[7px]">
-          {Array.from({ length: unidadesTotal }, (_, i) => (
-            <span
-              key={i}
-              className={`h-[11px] w-[11px] rounded-full ${
-                i < unidadesFaturando
-                  ? 'bg-gold'
-                  : 'shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.14)]'
+        {/* cobertura da rede: onde as unidades zeradas ficam visíveis */}
+        <div className="relative overflow-hidden rounded-2xl bg-surface px-[26px] py-6 flex items-end justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-fg-dim">
+              Unidades faturando
+            </p>
+            <p className="text-[38px] font-bold leading-none tracking-[-0.035em] mt-2.5">
+              {unidadesFaturando}
+              <span className="text-[22px] font-semibold text-fg-dim"> / {unidadesTotal}</span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-fg-dim">Sem venda</p>
+            <p
+              className={`text-[38px] font-bold leading-none tracking-[-0.035em] mt-2.5 ${
+                semVenda > 0 ? 'text-neg' : 'text-fg'
               }`}
+            >
+              {semVenda}
+            </p>
+          </div>
+          {/* proporção de unidades faturando, na borda inferior do cartão */}
+          <span className="absolute inset-x-0 bottom-0 h-[3px] bg-surface2">
+            <span
+              className="block h-full bg-gold transition-[width] duration-[1300ms] ease-out"
+              style={{ width: `${unidadesTotal > 0 ? (unidadesFaturando / unidadesTotal) * 100 : 0}%` }}
             />
-          ))}
+          </span>
         </div>
 
-        <div className="text-right">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-fg-dim">Sem venda</p>
-          <p
-            className={`text-[38px] font-bold leading-none tracking-[-0.035em] mt-2.5 ${
-              semVenda > 0 ? 'text-neg' : 'text-fg'
-            }`}
+        {/* agente de agendamento (WhatsApp) */}
+        {agente && (
+          <div
+            className="rounded-2xl bg-surface px-[26px] py-6 flex items-end justify-between
+                       shadow-[inset_0_0_0_1px_rgba(217,180,55,0.20)]"
           >
-            {semVenda}
-          </p>
-        </div>
+            <div>
+              <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-gold">
+                <i className="h-[7px] w-[7px] rounded-full bg-gold" />
+                Agente · agendamentos
+              </p>
+              <p className="text-[38px] font-bold leading-none tracking-[-0.035em] mt-2.5">
+                {formatNumber(agente.agendamentos)}
+                {agente.cancelados > 0 && (
+                  <span className="text-[15px] font-medium tracking-normal text-fg-dim ml-2.5">
+                    {formatNumber(agente.cancelados)} cancel.
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-fg-dim">
+                Valor agendado
+              </p>
+              <p className="text-[38px] font-bold leading-none tracking-[-0.035em] mt-2.5">
+                <span className="text-xl font-semibold text-gold mr-1.5">R$</span>
+                {formatCurrencyShort(agente.valor)}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )
