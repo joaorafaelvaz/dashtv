@@ -25,7 +25,8 @@ import {
   podarAntigas,
   MAX_NOTIFICACOES_POR_REFRESH,
 } from '@/lib/utils/vendas'
-import type { DashboardData, VendaNova } from '@/lib/types/dashboard'
+import { getAgenteHoje, periodoHojeBrasilia } from '@/lib/agente/client'
+import type { AgenteHoje, DashboardData, VendaNova } from '@/lib/types/dashboard'
 
 const CACHE_FILE = path.join(process.cwd(), 'data', 'dashboard-cache.json')
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutos
@@ -71,6 +72,21 @@ async function detectarVendasNovas(
 
   const retidas = podarAntigas(anterior?.data.vendas_novas ?? [], Date.parse(agoraIso))
   return { vendasNovas: [...retidas, ...detectadas], vendaIds }
+}
+
+/**
+ * Números do agente de agendamento. É um serviço externo: se falhar, o painel
+ * mantém a última leitura do mesmo dia em vez de piscar ou zerar; leitura de
+ * outro dia é descartada, para não mostrar o número de ontem como de hoje.
+ */
+async function lerAgente(anterior: AgenteHoje | null): Promise<AgenteHoje | null> {
+  try {
+    return await getAgenteHoje()
+  } catch (err) {
+    console.error('[cache] Falha ao ler a API do agente:', err)
+    const hoje = periodoHojeBrasilia(new Date()).from
+    return anterior?.dia === hoje ? anterior : null
+  }
 }
 
 async function fetchDashboardData(): Promise<DashboardData> {
@@ -143,6 +159,7 @@ async function fetchDashboardData(): Promise<DashboardData> {
     ranking,
     ultima_atualizacao: new Date().toISOString(),
     vendas_novas: [],
+    agente: null,
   }
 }
 
@@ -208,6 +225,7 @@ async function refresh(): Promise<void> {
         console.error('[cache] Falha ao detectar vendas novas:', err)
         vendaIds = memoryCache?.venda_ids
       }
+      data.agente = await lerAgente(memoryCache?.data.agente ?? null)
       const entry: CacheEntry = {
         data,
         refreshed_at: data.ultima_atualizacao,

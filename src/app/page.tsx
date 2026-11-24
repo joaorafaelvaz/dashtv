@@ -124,6 +124,7 @@ export default function DashboardTV() {
           taxaCancelamento={data.taxa_cancelamento}
           unidadesFaturando={data.unidades_faturando}
           unidadesTotal={data.unidades_total}
+          agente={data.agente ?? null}
         />
 
         <TopBarbeiros barbeiros={data.top_barbeiros} />

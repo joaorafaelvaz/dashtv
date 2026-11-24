@@ -43,6 +43,14 @@ export interface VendaNova {
   detectada_em: string                 // ISO — refresh em que a venda apareceu
 }
 
+/** Números de hoje do agente de agendamento por WhatsApp (API agente.franquiabv.com.br) */
+export interface AgenteHoje {
+  dia: string           // AAAA-MM-DD em Brasília — a que dia os números se referem
+  agendamentos: number  // agendamentos feitos pelo agente hoje (inclui os depois cancelados)
+  cancelados: number    // cancelamentos feitos pelo agente hoje
+  valor: number         // preço de tabela dos serviços agendados, sem os cancelados
+}
+
 export interface DashboardData {
   faturamento_hoje: number
   agendamentos_dia: number
@@ -65,4 +73,6 @@ export interface DashboardData {
   ultima_atualizacao: string     // ISO timestamp
   /** Vendas novas dos últimos refreshes (janela curta; o cliente deduplica por id) */
   vendas_novas: VendaNova[]
+  /** null = agente não configurado (sem AGENTE_API_KEY) ou sem leitura válida hoje */
+  agente: AgenteHoje | null
 }

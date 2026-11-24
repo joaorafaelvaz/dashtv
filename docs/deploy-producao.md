@@ -66,9 +66,17 @@ DB_PORT=3306
 DB_USER=dashtv
 DB_PASSWORD=SENHA_FORTE
 DB_NAME=franquia_producao
+AGENTE_API_KEY=CHAVE_DO_DASHBOARD
 EOF
 chmod 600 /var/www/dashtv/.env.local
 ```
+
+`AGENTE_API_KEY` é opcional: é a chave do dashboard na API do agente de
+agendamento (`python scripts/gen_api_key.py` no servidor do agente). Com ela, o
+painel mostra os agendamentos e o valor agendado pelo agente hoje; sem ela, o
+cartão do agente não aparece. Para apontar para outro endereço, defina também
+`AGENTE_API_URL` (padrão `https://agente.franquiabv.com.br/api`). Depois de
+alterar o `.env.local`, rode `pm2 reload ecosystem.config.js --update-env`.
 
 ## 5. Build
 
