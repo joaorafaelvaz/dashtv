@@ -5,6 +5,7 @@ import type { AgendaUnidade } from '@/lib/types/agenda'
 import { statusAgendamento } from '@/lib/utils/agenda'
 import AgendaHeader from '@/components/agenda/AgendaHeader'
 import AgendaGrade from '@/components/agenda/AgendaGrade'
+import { recarregarSeVersaoMudou } from '@/lib/utils/versao'
 
 /** A API guarda 1 min de cache; buscar no mesmo ritmo. */
 const REFRESH_MS = 60 * 1000
@@ -38,6 +39,8 @@ export default function AgendaUnidadePage({ params }: { params: { unidade: strin
         return
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      // Deploy novo no servidor: recarrega a página para pegar o código novo
+      recarregarSeVersaoMudou(res)
 
       setAgenda(await res.json())
       setErroFatal(null)

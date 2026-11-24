@@ -10,6 +10,7 @@ import StatusBar from '@/components/StatusBar'
 import TopBarbeiros from '@/components/TopBarbeiros'
 import NotificacaoVenda from '@/components/NotificacaoVenda'
 import { useVendasAoVivo } from '@/lib/hooks/useVendasAoVivo'
+import { recarregarSeVersaoMudou } from '@/lib/utils/versao'
 
 /** Intervalo de atualização em milissegundos (5 minutos) */
 const REFRESH_MS = 5 * 60 * 1000
@@ -59,6 +60,8 @@ export default function DashboardTV() {
         : '/api/dashboard'
       const res = await fetch(apiUrl, { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      // Deploy novo no servidor: recarrega a página para pegar o código novo
+      recarregarSeVersaoMudou(res)
       const json: DashboardData = await res.json()
       receber(json)
       setHasError(false)
