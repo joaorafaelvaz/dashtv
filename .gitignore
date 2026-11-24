@@ -37,3 +37,4 @@ next-env.d.ts
 
 # cache em disco gerado em runtime
 /data/dashboard-cache.json
+/data/forcar-atualizacao

@@ -26,6 +26,7 @@ import {
   MAX_NOTIFICACOES_POR_REFRESH,
 } from '@/lib/utils/vendas'
 import { getAgenteHoje, periodoHojeBrasilia } from '@/lib/agente/client'
+import { lerSinal } from '@/lib/versao'
 import type { AgenteHoje, DashboardData, VendaNova } from '@/lib/types/dashboard'
 
 const CACHE_FILE = path.join(process.cwd(), 'data', 'dashboard-cache.json')
@@ -42,6 +43,8 @@ let memoryCache: CacheEntry | null = null
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 /** Refresh em andamento. Requisições concorrentes aguardam este mesmo promise. */
 let refreshPromise: Promise<void> | null = null
+/** Último sinal de scripts/forcar-atualizacao.sh já atendido (null = ainda não lido) */
+let sinalAtendido: string | null = null
 
 /** Idade máxima do refresh anterior para servir de referência às vendas novas */
 const MAX_IDADE_REFERENCIA_MS = 3 * REFRESH_INTERVAL_MS
@@ -261,7 +264,14 @@ export async function getCachedDashboard(): Promise<CacheEntry> {
     }
   }
 
-  if (!memoryCache) {
+  // Sinal novo de forcar-atualizacao.sh: refaz o cache agora, sem esperar o
+  // intervalo. Na subida do processo só registra o sinal que já existia.
+  const sinal = lerSinal()
+  const forcado = sinalAtendido !== null && sinal !== sinalAtendido
+  sinalAtendido = sinal
+
+  if (!memoryCache || forcado) {
+    if (forcado) console.log('[cache] Atualização forçada (sinal', sinal + ')')
     await refresh()
   }
 

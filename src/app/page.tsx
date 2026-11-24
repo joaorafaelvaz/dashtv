@@ -10,11 +10,15 @@ import StatusBar from '@/components/StatusBar'
 import TopBarbeiros from '@/components/TopBarbeiros'
 import NotificacaoVenda from '@/components/NotificacaoVenda'
 import { useVendasAoVivo } from '@/lib/hooks/useVendasAoVivo'
+import { recarregarSeVersaoMudou } from '@/lib/utils/versao'
 
 /** Intervalo de atualização em milissegundos (5 minutos) */
 const REFRESH_MS = 5 * 60 * 1000
 
 /** Dimensões fixas do canvas portrait para TV 50" (1080p portrait = 1080×1920) */
+/** De quanto em quanto tempo a TV pergunta ao servidor se há versão nova */
+const VERSAO_MS = 60 * 1000
+
 const CANVAS_W = 1080
 const CANVAS_H = 1920
 
@@ -59,6 +63,8 @@ export default function DashboardTV() {
         : '/api/dashboard'
       const res = await fetch(apiUrl, { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      // Deploy novo no servidor: recarrega a página para pegar o código novo
+      recarregarSeVersaoMudou(res)
       const json: DashboardData = await res.json()
       receber(json)
       setHasError(false)
@@ -73,6 +79,23 @@ export default function DashboardTV() {
     const timer = setInterval(fetchData, REFRESH_MS)
     return () => clearInterval(timer)
   }, [fetchData])
+
+  // ---------- Recarga comandada pelo servidor ----------
+  // Deploy novo ou scripts/forcar-atualizacao.sh: a versão muda e a página
+  // recarrega sozinha em até 1 min, sem ninguém precisar ir até a TV.
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const token = new URLSearchParams(window.location.search).get('token')
+        const url = token ? `/api/versao?token=${encodeURIComponent(token)}` : '/api/versao'
+        const res = await fetch(url, { cache: 'no-store' })
+        if (res.ok) recarregarSeVersaoMudou(res)
+      } catch {
+        // sem rede: tenta de novo no próximo ciclo
+      }
+    }, VERSAO_MS)
+    return () => clearInterval(timer)
+  }, [])
 
   // ---------- Estados de carregamento e erro ----------
   if (hasError && !data) {
